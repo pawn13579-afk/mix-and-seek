@@ -21,7 +21,7 @@ body.dev #root{height:auto}
 body.dev #boardWrap{height:min(92vw,480px);flex:none}
 #fld{display:block;touch-action:none}
 .row{display:flex;flex-wrap:nowrap;gap:6px;align-items:center}
-#handRow{justify-content:center;min-height:52px}
+#handRow{justify-content:center;min-height:52px;margin-top:8px}
 .hand{touch-action:none;width:52px;height:52px;flex:none;border-radius:10px;border:3px solid transparent;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;padding:0;user-select:none;-webkit-user-select:none}
 .er{background:#141414;color:#FFFFFF;border:3px solid var(--border-strong)!important;margin-left:2px}
 .hand.on{border-color:var(--text-primary)}
@@ -76,11 +76,11 @@ const LIFT=44,HN=3;['h0','h1','h2','er'].forEach(id=>document.getElementById(id)
 const sq=c=>c?`<span class="sq" style="background:${FILL[c]}"></span>`:`<span class="sq blk"></span>`;
 const eq=(a,b,r)=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`;
 document.getElementById('mix').innerHTML=eq(1,2,3)+eq(2,4,6)+eq(1,4,5)+`<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>`+`<div class="mx">${sq(1)}+${sq(2)}+${sq(4)}=${sq(0)}</div>`+eq(3,4,0)+eq(3,1,0)+eq(1,1,0);
-let REF=true,G=7,START=10,conf=new Set(),best=0;
+let selCell=null,REF=true,G=7,START=10,conf=new Set(),best=0;
 try{best=+(localStorage.getItem('sm_best')||0)}catch(e){best=0}
 let rec=[],mv=[],hand=[0,0,0],hs=0,zone=1,tiles=20,zoneStart=20,score=0,scoreStart=0,gems=[],cell={},reveal=false,phase='play',burned=0,flash=[],vanish=[],hist=[],stats={placed:0,found:0,gain:0},order=[],drag=null,target=null;
 const $=id=>document.getElementById(id),ri=n=>Math.floor(Math.random()*n),K=(x,y)=>x+','+y;
-function sched(z){return {gain:z<=10?2:1,cap:Infinity,mixMin:z<=12?0:z<=15?1/3:z<=20?1/2:2/3,pw:z<=10?1:z<=15?1.5:2};}
+function sched(z){return {gain:2,cap:Infinity,mixMin:z<=12?0:z<=15?1/3:z<=20?1/2:2/3,pw:z<=10?1:z<=15?1.5:2};}
 function spec(z){let k=1,n=1,nc=z===1?1:0;for(let st=2;st<=z;st++){if(k<6&&st%2===1){k++;nc=st===z?ORDER[k-1]:0;}else{n=Math.min(n+1,10);if(st===z)nc=0;}}return {colors:ORDER.slice(0,k),n,nc};}
 const pal=()=>spec(zone).colors;
 function place(n,nc){const s=new Set(),g=[],P=pal(),MX=P.filter(c=>!PRIM.includes(c));n=Math.min(n,G*G);
@@ -99,7 +99,7 @@ function tileSvg(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],m=0.05,cx=x+0.5,cy=y
  return `<rect x="${x+m}" y="${y+m}" width="${1-2*m}" height="${1-2*m}" rx="0.1" fill="${FILL[t]}" stroke="${ring?'#FFFFFF':'none'}" stroke-width="0.08"/>`+(ring?'':tx(cx,cy-d,c.u)+tx(cx,cy+d,c.d)+tx(cx-d,cy,c.l)+tx(cx+d,cy,c.r));}
 function draw(){
  $('fld').setAttribute('viewBox',`-0.1 -0.1 ${G+0.2} ${G+0.2}`);
- const vc=drag&&drag.c?drag.c:hand[hs];
+ const vc=drag&&drag.c?drag.c:(selCell&&cell[selCell]?cell[selCell]:hand[hs]);
  let s=`<rect x="0" y="0" width="${G}" height="${G}" rx="0.08" fill="#141414"/>`;
  for(let i=1;i<G;i++)s+=`<line x1="${i}" y1="0" x2="${i}" y2="${G}" stroke="#3A3A3A" stroke-width="0.02"/><line x1="0" y1="${i}" x2="${G}" y2="${i}" stroke="#3A3A3A" stroke-width="0.02"/>`;
  let dim='';for(const [k,t] of Object.entries(cell)){if(t!==vc)continue;const [x,y]=k.split(',').map(Number),c=clue(x,y,t);
@@ -108,6 +108,7 @@ function draw(){
  s+=`<g opacity="0.55" fill="#000000">${dim}</g>`;
  for(const [k,t] of Object.entries(cell))if(t===vc){const [x,y]=k.split(',').map(Number);s+=`<line x1="0" y1="${y+0.5}" x2="${G}" y2="${y+0.5}" stroke="${FILL[t]}" stroke-width="0.03" stroke-dasharray="0.1 0.08"/><line x1="${x+0.5}" y1="0" x2="${x+0.5}" y2="${G}" stroke="${FILL[t]}" stroke-width="0.03" stroke-dasharray="0.1 0.08"/>`;}
  for(const [k,t] of Object.entries(cell)){const [x,y]=k.split(',').map(Number);s+=tileSvg(x,y,t,false);}
+ if(selCell&&cell[selCell]&&!drag){const [sx,sy]=selCell.split(',').map(Number);s+=`<rect x="${sx+0.01}" y="${sy+0.01}" width="0.98" height="0.98" rx="0.12" fill="none" stroke="#FFFFFF" stroke-width="0.07"/>`;}
  for(const v of vanish)s+=tileSvg(v.x,v.y,v.t,true);
  for(const g of done())s+=`<circle cx="${g.x+0.5}" cy="${g.y+0.5}" r="0.17" fill="none" stroke="#FFFFFF" stroke-width="0.05"/>`;
  for(const g of flash)s+=`<circle cx="${g.x+0.5}" cy="${g.y+0.5}" r="0.42" fill="none" stroke="#FFFFFF" stroke-width="0.08"/>`;
@@ -118,7 +119,7 @@ function draw(){
   s+=`<rect x="${target.x+0.02}" y="${target.y+0.02}" width="0.96" height="0.96" rx="0.1" fill="${r?FILL[r]:'#000000'}" fill-opacity="${r?0.45:0.9}" stroke="#FFFFFF" stroke-width="0.07"/>`;}
  $('fld').innerHTML=s;
 
- [0,1,2].forEach(i=>{const b=$('h'+i),c=hand[i];b.style.background=c?FILL[c]:'transparent';b.style.color=c?INK[c]:'var(--text-muted)';b.textContent=c?NAME[c]:'-';b.classList.toggle('on',hs===i);b.style.opacity=drag&&drag.i===i?0.35:1;});
+ [0,1,2].forEach(i=>{const b=$('h'+i),c=hand[i];b.style.background=c?FILL[c]:'transparent';b.style.color=c?INK[c]:'var(--text-muted)';b.textContent=c?NAME[c]:'-';b.classList.toggle('on',hs===i&&!(selCell&&cell[selCell]));b.style.opacity=drag&&drag.i===i?0.35:1;});
 
  $('er').style.opacity=drag&&drag.er?0.35:1;$('bRef').style.display=REF&&phase==='play'?'':'none';$('rOn').classList.toggle('sel',REF);$('rOff').classList.toggle('sel',!REF);
  $('bNext').style.display=phase==='burn'?'':'none';['h0','h1','h2','er'].forEach(id=>$(id).style.display=phase==='play'?'flex':'none');$('bRetry').style.display=phase==='lost'?'':'none';
@@ -135,7 +136,7 @@ function draw(){
 function msg(t,d){$('msg').textContent=t;$('msg').style.color=d?'var(--text-danger)':'var(--text-primary)';}
 function snap(){return {cell:{...cell},f:gems.map(g=>g.f),tiles,score,phase,burned,stats:{...stats},order:[...order],hand:[...hand],hs,conf:[...conf],mv:[...mv],rec:JSON.parse(JSON.stringify(rec))};}
 function setBest(){if(score>best){best=score;try{localStorage.setItem('sm_best',String(best))}catch(e){}}}
-function startZone(newLayout){const sp=spec(zone);if(newLayout)gems=place(sp.n,sp.nc);else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
+function startZone(newLayout){selCell=null;const sp=spec(zone);if(newLayout)gems=place(sp.n,sp.nc);else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
  hand=Array.from({length:HN},draw1);hs=0;
  if(tiles<=0){phase='lost';setBest();msg(`남은 타일이 없어 ${zone}구역을 시작할 수 없습니다. 최종 점수 ${score}점 · 최고 ${best}점.`,true);draw();return;}
  msg(`${zone}구역 · 숨은 보석 ${gems.length}개.`+(sp.nc&&zone>1?` 새 색: ${NAME[sp.nc]} 보석이 이번 구역에 적어도 하나 있습니다.`:zone>1?'':' 타일을 끌어 칸에 놓으세요. 숫자는 그쪽에 같은 색 보석이 몇 개 있는지 알려 줍니다.')+` 보석을 찾으면 타일 ${sched(zone).gain}개를 받습니다.`);draw();}
@@ -143,7 +144,7 @@ function readVals(){const v=(id,lo,hi,d)=>{const n=parseInt($(id).value,10);retu
 function jump(z){readVals();rec=[];zone=z;zoneStart=START;scoreStart=0;startZone(true);}
 const zbs=$('zbs');for(let z=1;z<=21;z++){const b=document.createElement('button');b.className='zb';b.dataset.z=z;b.textContent=z+'구역';b.onclick=()=>jump(z);zbs.appendChild(b);}
 function cellAt(cx,cy){const pt=$('fld').createSVGPoint();pt.x=cx;pt.y=cy;const p=pt.matrixTransform($('fld').getScreenCTM().inverse());if(p.x<0||p.y<0||p.x>=G||p.y>=G)return null;return {x:Math.floor(p.x),y:Math.floor(p.y)};}
-function placeAt(x,y,i){const h=hand[i];const k=K(x,y),t=cell[k]||0;const S=sched(zone);
+function placeAt(x,y,i){selCell=null;const h=hand[i];const k=K(x,y),t=cell[k]||0;const S=sched(zone);
  hist.push(snap());
  const nt=result(t,h),w=why(t,h);flash=[];vanish=[];const parts=[];stats.placed++;
  const g=gems.find(q=>!q.f&&q.x===x&&q.y===y);
@@ -162,16 +163,16 @@ function placeAt(x,y,i){const h=hand[i];const k=K(x,y),t=cell[k]||0;const S=sche
   parts.push(`${zone}구역을 다 찾았습니다. 남은 타일 ${tiles}개로 다음 구역에 갑니다.`);}
  else if(tiles<=0){phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}
  msg(parts.join(' '),phase==='lost');draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
-function moveGhost(e,lift){const r=$('root').getBoundingClientRect(),gh=$('ghost');gh.style.left=(e.clientX-r.left-26)+'px';gh.style.top=(e.clientY-r.top-26-lift)+'px';if(drag&&(drag.c||drag.er))target=cellAt(e.clientX,e.clientY-lift);draw();}
+function moveGhost(e,lift){if(e.clientY>=$('handRow').getBoundingClientRect().top-4)lift=0;const r=$('root').getBoundingClientRect(),gh=$('ghost');gh.style.left=(e.clientX-r.left-26)+'px';gh.style.top=(e.clientY-r.top-26-lift)+'px';if(drag&&(drag.c||drag.er)){if(!drag.mv&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>14)drag.mv=true;const top=$('handRow').getBoundingClientRect().top;target=(drag.mv&&e.clientY<top)?cellAt(e.clientX,e.clientY-lift):null;}draw();}
 [0,1,2].forEach(i=>{const el=$('h'+i);
- el.addEventListener('pointerdown',e=>{if(phase!=='play'||!hand[i])return;e.preventDefault();el.setPointerCapture(e.pointerId);hs=i;drag={i,c:hand[i]};const gh=$('ghost');gh.style.display='flex';gh.style.background=FILL[drag.c];gh.style.color=INK[drag.c];gh.textContent=NAME[drag.c];moveGhost(e,LIFT);});
+ el.addEventListener('pointerdown',e=>{if(phase!=='play'||!hand[i])return;e.preventDefault();el.setPointerCapture(e.pointerId);hs=i;selCell=null;drag={i,c:hand[i],sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background=FILL[drag.c];gh.style.color=INK[drag.c];gh.textContent=NAME[drag.c];moveGhost(e,LIFT);});
  el.addEventListener('pointermove',e=>{if(drag)moveGhost(e,LIFT);});
  el.addEventListener('pointerup',()=>{if(!drag)return;const d=drag,t=target;drag=null;target=null;$('ghost').style.display='none';if(t)placeAt(t.x,t.y,d.i);else{msg('판 밖에서 놓아 타일이 제자리로 돌아갔습니다.');draw();}});
  el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});});
 function lostCheck(parts){if(tiles<=0&&live().length){phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}}
-function eraseAt(x,y){const k=K(x,y);if(!cell[k]){msg('빈 칸에는 지우개를 놓을 수 없습니다. 타일은 줄지 않았습니다.');draw();return;}hist.push(snap());const t=cell[k];delete cell[k];tiles--;stats.placed++;mv.push(`지우개(${x+1},${y+1})`);const parts=[`${NAME[t]} 타일을 지웠습니다. 타일 1개를 썼습니다.`];lostCheck(parts);msg(parts.join(' '),phase==='lost');draw();}
+function eraseAt(x,y){selCell=null;const k=K(x,y);if(!cell[k]){msg('빈 칸에는 지우개를 놓을 수 없습니다. 타일은 줄지 않았습니다.');draw();return;}hist.push(snap());const t=cell[k];delete cell[k];tiles--;stats.placed++;mv.push(`지우개(${x+1},${y+1})`);const parts=[`${NAME[t]} 타일을 지웠습니다. 타일 1개를 썼습니다.`];lostCheck(parts);msg(parts.join(' '),phase==='lost');draw();}
 {const el=$('er');
- el.addEventListener('pointerdown',e=>{if(phase!=='play')return;e.preventDefault();el.setPointerCapture(e.pointerId);drag={er:true};const gh=$('ghost');gh.style.display='flex';gh.style.background='#141414';gh.style.color='#FFFFFF';gh.textContent='지우개';moveGhost(e,LIFT);});
+ el.addEventListener('pointerdown',e=>{if(phase!=='play')return;e.preventDefault();el.setPointerCapture(e.pointerId);drag={er:true,sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background='#141414';gh.style.color='#FFFFFF';gh.textContent='지우개';moveGhost(e,LIFT);});
  el.addEventListener('pointermove',e=>{if(drag)moveGhost(e,LIFT);});
  el.addEventListener('pointerup',()=>{if(!drag)return;const t=target;drag=null;target=null;$('ghost').style.display='none';if(t)eraseAt(t.x,t.y);else{msg('판 밖에서 놓아 지우개가 제자리로 돌아갔습니다.');draw();}});
  el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});}
@@ -184,6 +185,7 @@ $('bNew').onclick=()=>jump(1);
 $('bSame').onclick=()=>startZone(false);
 $('bShow').onclick=()=>{reveal=!reveal;draw();};
 $('bAdd').onclick=()=>{hist.push(snap());tiles+=5;if(phase==='lost'&&live().length)phase='play';msg('테스트용으로 타일 5개를 더했습니다.');draw();};
+$('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.clientX,e.clientY);if(!c)return;const k=K(c.x,c.y);selCell=cell[k]&&selCell!==k?k:null;draw();});
 function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
 jump(1);fit();setTimeout(fit,300);
