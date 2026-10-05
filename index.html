@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mix &amp; Seek 프로토타입</title>
 <style>
@@ -15,7 +18,7 @@ button{font:inherit;color:var(--text-primary);background:transparent;border:1px 
 body.dev #root{height:auto}
 #stat .big{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:15px}
 #stat .big b{font-size:19px;font-weight:600}
-#stat .muted{color:var(--text-muted);font-size:13px}
+#stat .muted{color:var(--text-muted);font-size:15px}
 #stat .small{font-size:11px;color:var(--text-secondary);margin-top:2px}
 #boardWrap{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center}
 body.dev #boardWrap{height:min(92vw,480px);flex:none}
@@ -27,8 +30,7 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 .hand.on{border-color:var(--text-primary)}
 #bRef{height:52px;padding:0 8px;font-size:11px;line-height:1.3;flex:none}
 #bCollect,#bNext,#bRetry{height:52px;padding:0 20px;font-size:15px;font-weight:600}
-#msg{font-size:13px;line-height:1.45;height:56px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
-#info{background:var(--surface-1);border-radius:var(--radius);padding:6px 10px;font-size:12px}
+#msg{font-size:15px;line-height:1.45;height:66px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .mx{display:inline-flex;align-items:center;gap:2px;margin:1px 8px 1px 0;font-size:11px;color:var(--text-secondary)}
 .sq{width:12px;height:12px;border-radius:3px;display:inline-block}
 .blk{background:#141414;border:1px solid var(--border-strong)}
@@ -76,6 +78,25 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 .gB svg{width:100%;display:block}
 .gB p{font-size:15px;line-height:1.4;margin:6px 0 0}
 
+#stat{padding-right:96px}
+.gemRow{display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:6px}
+.gLab{font-size:15px;color:var(--text-secondary);margin-right:4px}
+.gIco{width:22px;height:22px;display:inline-block}
+.gCnt{font-size:17px;margin-left:6px}
+.gCnt b{font-size:20px;font-weight:700}
+#mixBtn{position:absolute;top:8px;right:54px;height:36px;padding:0 10px;font-size:14px;z-index:4;background:var(--surface-1)}
+#mixPop{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9;display:none;align-items:center;justify-content:center}
+#mixPop.show{display:flex}
+.popIn{background:var(--bg);border-radius:14px;padding:18px 20px;min-width:260px;max-width:90vw;text-align:center}
+.popIn h3{font-size:17px;margin:4px 0 10px}
+#mix .mx{font-size:18px;gap:6px;margin:6px 0;display:flex;justify-content:center}
+#mix .sq{width:30px;height:30px;border-radius:7px}
+#done{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px}
+#done .fr{display:inline-flex;align-items:center;gap:6px;font-size:16px;margin:0}
+#done .dot{width:16px;height:16px}
+.popNote{font-size:15px;color:var(--text-secondary);margin:10px 0}
+#mixClose{font-size:16px;padding:8px 28px}
+
 </style>
 </head>
 <body>
@@ -84,7 +105,9 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 <div id="boardWrap"><svg id="fld" viewBox="-0.1 -0.1 7.2 7.2"></svg></div>
 <div class="row" id="handRow"><div class="hand" id="h0"></div><div class="hand" id="h1"></div><div class="hand" id="h2"></div><div class="hand er" id="er">지우개</div><button id="bRef" style="display:none">바꾸기<br>(타일 1개)</button><button id="bCollect" style="display:none">확인</button><button id="bNext" style="display:none">다음 구역</button><button id="bRetry" style="display:none">다시 하기</button></div>
 <div id="msg"></div>
-<div id="info"><div id="mix"></div><div class="line"><span class="lab">색</span><span id="done"></span><span class="lab">찾은 보석</span><span id="found"></span></div></div>
+<button id="mixBtn">색 조합</button>
+<div id="mixPop"><div class="popIn"><h3>색 조합</h3><div id="mix"></div><h3>이번 구역 색</h3><div id="done"></div><p class="popNote">완료 = 그 색 보석이 더 없음</p><button id="mixClose">닫기</button></div></div>
+<span id="found" style="display:none"></span>
 <div id="rec" style="display:none"></div>
 <div class="tools" id="devTools">
 <div class="row"><span class="lab">구역 바로 가기</span><span id="zbs" style="display:flex;flex-wrap:wrap;gap:6px"></span></div>
@@ -156,7 +179,7 @@ const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},P
 const LIFT=44,HN=3;['h0','h1','h2','er'].forEach(id=>document.getElementById(id).addEventListener('touchstart',e=>e.preventDefault(),{passive:false}));document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});if(location.search.indexOf('dev')>=0){document.getElementById('devTools').style.display='block';document.body.classList.add('dev');}
 const sq=c=>c?`<span class="sq" style="background:${FILL[c]}"></span>`:`<span class="sq blk"></span>`;
 const eq=(a,b,r)=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`;
-document.getElementById('mix').innerHTML=eq(1,2,3)+eq(2,4,6)+eq(1,4,5)+`<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>`+`<div class="mx">${sq(1)}+${sq(2)}+${sq(4)}=${sq(0)}</div>`+eq(3,4,0)+eq(3,1,0)+eq(1,1,0);
+document.getElementById('mix').innerHTML=eq(1,2,3)+eq(2,4,6)+eq(1,4,5);void(`<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>`+`<div class="mx">${sq(1)}+${sq(2)}+${sq(4)}=${sq(0)}</div>`+eq(3,4,0)+eq(3,1,0)+eq(1,1,0));
 let collected=false,collecting=false,selCell=null,REF=true,G=7,START=10,conf=new Set(),best=0;
 try{best=+(localStorage.getItem('sm_best')||0)}catch(e){best=0}
 let rec=[],mv=[],hand=[0,0,0],hs=0,zone=1,tiles=20,zoneStart=20,score=0,scoreStart=0,gems=[],cell={},reveal=false,phase='play',burned=0,flash=[],vanish=[],hist=[],stats={placed:0,found:0,gain:0},order=[],drag=null,target=null;
@@ -216,7 +239,7 @@ function draw(){
  $('found').innerHTML=`<div style="margin-bottom:8px">${done().length}개 / ${gems.length}개</div>`+(done().length?ALL.filter(c=>fc[c]).map(c=>`<div class="fr"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fc[c]}개</div>`).join(''):'<div class="lab">아직 없음</div>');
  $('rec').innerHTML=rec.length?`<table style="border-collapse:collapse;width:100%"><tr style="color:var(--text-secondary)"><td>구역</td><td>놓은</td><td>남은</td><td>찾은 보석</td><td>점수</td></tr>`+rec.map(r=>`<tr><td>${r.z}</td><td>${r.placed}</td><td>${r.left}</td><td>${r.fail?'패배':r.n}</td><td>${r.score==null?'-':r.score}</td></tr>`).join('')+`</table>`:'<div class="lab">구역을 끝내면 여기에 쌓입니다</div>';
  const S=sched(zone);
- $('stat').innerHTML=`<div class="big"><span>${zone}구역</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b id="scoreNum">${score}</b></span><span class="muted">최고 ${best}</span></div><div class="small">숨은 보석 ${live().length}개 · 보석을 찾으면 타일 +${S.gain}개 · 나올 수 있는 색: ${pal().map(c=>NAME[c]).join('·')}</div>`;
+ $('stat').innerHTML=`<div class="big"><span>${zone}구역</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b id="scoreNum">${score}</b></span><span class="muted">최고 ${best}</span></div><div class="gemRow"><span class="gLab">보석</span>${[...done(),...live()].map(g=>`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.92,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.92,'none','#888780',0.06)}</svg>`).join('')}<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span></div>`;
  $('sch').textContent=`이번 구역 값: 보석 ${spec(zone).n}개 · 섞은 색 보석 최소 ${Math.round(S.mixMin*100)}% · 성분 색 가중치 ${S.pw}배 · 보석 찾으면 타일 +${S.gain}개`;
  $('log').textContent=`이번 구역: 놓은 횟수 ${stats.placed}, 찾은 보석 ${stats.found}, 찾아서 받은 타일 ${stats.gain}`+(reveal||phase!=='play'?` · 보석 구성: ${ALL.filter(c=>gems.some(g=>g.c===c)).map(c=>NAME[c]+' '+gems.filter(g=>g.c===c).length).join(', ')}`:'');
  $('done').innerHTML=pal().map(c=>{const fin=conf.has(c);return `<div class="fr" style="opacity:${fin?0.45:1}"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fin?'<b style="font-weight:500">완료</b>':''}</div>`;}).join('');
@@ -286,6 +309,7 @@ function collect(){if(collecting||collected)return;collecting=true;draw();const 
   setTimeout(()=>{f.remove();score+=10;draw();const n=$('scoreNum');n.classList.remove('bump');void n.offsetWidth;n.classList.add('bump');},520);setTimeout(step,260);};
  step();}
 $('bCollect').onclick=collect;
+$('mixBtn').onclick=()=>$('mixPop').classList.add('show');$('mixPop').onclick=e=>{if(e.target.id==='mixPop'||e.target.id==='mixClose')$('mixPop').classList.remove('show');};
 function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
 jump(1);fit();setTimeout(fit,300);
