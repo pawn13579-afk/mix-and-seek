@@ -26,7 +26,7 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 .er{background:#141414;color:#FFFFFF;border:3px solid var(--border-strong)!important;margin-left:2px}
 .hand.on{border-color:var(--text-primary)}
 #bRef{height:52px;padding:0 8px;font-size:11px;line-height:1.3;flex:none}
-#bNext,#bRetry{height:52px;padding:0 20px;font-size:15px;font-weight:600}
+#bCollect,#bNext,#bRetry{height:52px;padding:0 20px;font-size:15px;font-weight:600}
 #msg{font-size:13px;line-height:1.45;height:56px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 #info{background:var(--surface-1);border-radius:var(--radius);padding:6px 10px;font-size:12px}
 .mx{display:inline-flex;align-items:center;gap:2px;margin:1px 8px 1px 0;font-size:11px;color:var(--text-secondary)}
@@ -65,13 +65,24 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 .gMix .sq{width:18px;height:18px;border-radius:4px;display:inline-block}
 #guideClose{font-size:18px;font-weight:700;padding:12px 40px;margin-top:4px}
 
+.fly{position:absolute;z-index:6;pointer-events:none;transition:transform .5s cubic-bezier(.5,0,.75,0),opacity .5s}
+#scoreNum{display:inline-block}
+.bump{animation:bump .35s ease-out}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.45);color:#F2C12E}100%{transform:scale(1)}}
+#bCollect{background:#F2C12E;color:#1F1E1C;border-color:#F2C12E}
+
+.gPair{display:flex;gap:10px}
+.gB{flex:1}
+.gB svg{width:100%;display:block}
+.gB p{font-size:15px;line-height:1.4;margin:6px 0 0}
+
 </style>
 </head>
 <body>
 <div id="root">
 <div id="stat"></div>
 <div id="boardWrap"><svg id="fld" viewBox="-0.1 -0.1 7.2 7.2"></svg></div>
-<div class="row" id="handRow"><div class="hand" id="h0"></div><div class="hand" id="h1"></div><div class="hand" id="h2"></div><div class="hand er" id="er">지우개</div><button id="bRef" style="display:none">바꾸기<br>(타일 1개)</button><button id="bNext" style="display:none">다음 구역</button><button id="bRetry" style="display:none">다시 하기</button></div>
+<div class="row" id="handRow"><div class="hand" id="h0"></div><div class="hand" id="h1"></div><div class="hand" id="h2"></div><div class="hand er" id="er">지우개</div><button id="bRef" style="display:none">바꾸기<br>(타일 1개)</button><button id="bCollect" style="display:none">확인</button><button id="bNext" style="display:none">다음 구역</button><button id="bRetry" style="display:none">다시 하기</button></div>
 <div id="msg"></div>
 <div id="info"><div id="mix"></div><div class="line"><span class="lab">색</span><span id="done"></span><span class="lab">찾은 보석</span><span id="found"></span></div></div>
 <div id="rec" style="display:none"></div>
@@ -86,27 +97,30 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 <button id="guideBtn" aria-label="규칙 보기">?</button>
 <div id="guide">
 <div class="gIn">
-<h2>숫자 읽는 법</h2>
+<h2>보석 찾는 법</h2>
 <p class="gBig">타일 위 숫자 = 그 방향에 있는<br><b>같은 색 보석</b>의 개수</p>
-<div class="gTop">
-<svg viewBox="-0.1 -0.1 5.2 5.75" class="gBoard" role="img" aria-label="빨강 타일 하나와 숨은 빨강 보석 셋이 있는 5칸 판">
-<rect x="0" y="0" width="5" height="5" rx="0.06" fill="#141414"/>
-<rect x="0" y="0" width="2" height="5" fill="#E0312B" opacity="0.2"/>
-<rect x="0.03" y="0.03" width="1.94" height="4.94" fill="none" stroke="#F2C12E" stroke-width="0.05" stroke-dasharray="0.14 0.09"/>
-<g stroke="#3A3A3A" stroke-width="0.02"><line x1="1" y1="0" x2="1" y2="5"/><line x1="2" y1="0" x2="2" y2="5"/><line x1="3" y1="0" x2="3" y2="5"/><line x1="4" y1="0" x2="4" y2="5"/><line x1="0" y1="1" x2="5" y2="1"/><line x1="0" y1="2" x2="5" y2="2"/><line x1="0" y1="3" x2="5" y2="3"/><line x1="0" y1="4" x2="5" y2="4"/></g>
-<g opacity="0.85"><polygon points="0.326,0.271 0.674,0.271 0.810,0.439 0.500,0.780 0.190,0.439" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M0.190,0.439L0.810,0.439M0.326,0.271L0.413,0.439L0.500,0.780M0.674,0.271L0.587,0.439L0.500,0.780M0.413,0.439L0.500,0.271L0.587,0.439" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="1.326,3.271 1.674,3.271 1.810,3.439 1.500,3.780 1.190,3.439" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M1.190,3.439L1.810,3.439M1.326,3.271L1.413,3.439L1.500,3.780M1.674,3.271L1.587,3.439L1.500,3.780M1.413,3.439L1.500,3.271L1.587,3.439" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="4.326,2.271 4.674,2.271 4.810,2.439 4.500,2.780 4.190,2.439" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M4.190,2.439L4.810,2.439M4.326,2.271L4.413,2.439L4.500,2.780M4.674,2.271L4.587,2.439L4.500,2.780M4.413,2.439L4.500,2.271L4.587,2.439" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g>
-<rect x="2.04" y="2.04" width="0.92" height="0.92" rx="0.1" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.05"/>
-<g fill="#FFFFFF" font-size="0.26" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="2.5" y="2.22">1</text><text x="2.5" y="2.8">1</text><text x="2.22" y="2.5">2</text><text x="2.78" y="2.5">1</text></g>
-<text x="0" y="5.42" font-size="0.36" font-weight="700" fill="#D9A400" dominant-baseline="central">왼쪽 칸들에 빨강 보석 2개</text>
-</svg>
-<svg viewBox="0 0 3 3.6" class="gZoom" role="img" aria-label="가운데 빨강 타일을 크게 그린 그림. 위 1, 아래 1, 왼쪽 2, 오른쪽 1">
-<rect x="0.75" y="0.75" width="1.5" height="1.5" rx="0.16" fill="#E0312B"/>
-<g fill="#FFFFFF" font-size="0.42" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="1.5" y="1.05">1</text><text x="1.5" y="1.95">1</text><text x="1.05" y="1.5">2</text><text x="1.95" y="1.5">1</text></g>
-<g fill="#888780"><polygon points="1.5,0.12 1.32,0.45 1.68,0.45"/><polygon points="1.5,2.88 1.32,2.55 1.68,2.55"/><polygon points="0.12,1.5 0.45,1.32 0.45,1.68"/><polygon points="2.88,1.5 2.55,1.32 2.55,1.68"/></g>
-<text x="1.5" y="3.3" font-size="0.3" fill="#888780" text-anchor="middle" dominant-baseline="central">가운데 타일 크게</text>
-</svg>
-</div>
-<p class="gNote"><svg viewBox="0 0 1 1" width="18" height="18" style="vertical-align:-3px"><g opacity="0.85"><polygon points="0.248,0.188 0.752,0.188 0.950,0.431 0.500,0.926 0.050,0.431" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.05" stroke-linejoin="round"/><path d="M0.050,0.431L0.950,0.431M0.248,0.188L0.374,0.431L0.500,0.926M0.752,0.188L0.626,0.431L0.500,0.926M0.374,0.431L0.500,0.188L0.626,0.431" fill="none" stroke="#FFFFFF" stroke-width="0.03" stroke-linejoin="round" opacity="0.7"/></g></svg> 숨은 빨강 보석 (게임에서는 안 보임)<br>빨강 타일: 위 1 · 아래 1 · 왼쪽 2 · 오른쪽 1</p>
+<div class="gPair"><div class="gB"><svg viewBox="-0.05 -0.05 5.1 5.1" role="img" aria-label="왼쪽 숫자 <b>2</b><br>왼쪽에 빨강 보석 2개">
+<defs><marker id="ahL" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#F2C12E"/></marker></defs>
+<rect x="0" y="0" width="5" height="5" rx="0.06" fill="#141414"/><rect x="0" y="0" width="2" height="5" fill="#E0312B" opacity="0.22"/>
+<g stroke="#3A3A3A" stroke-width="0.02"><line x1="1" y1="0" x2="1" y2="5"/><line x1="0" y1="1" x2="5" y2="1"/><line x1="2" y1="0" x2="2" y2="5"/><line x1="0" y1="2" x2="5" y2="2"/><line x1="3" y1="0" x2="3" y2="5"/><line x1="0" y1="3" x2="5" y2="3"/><line x1="4" y1="0" x2="4" y2="5"/><line x1="0" y1="4" x2="5" y2="4"/></g>
+<g opacity="0.85"><polygon points="2.326,0.291 2.674,0.291 2.810,0.459 2.500,0.800 2.190,0.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M2.190,0.459L2.810,0.459M2.326,0.291L2.413,0.459L2.500,0.800M2.674,0.291L2.587,0.459L2.500,0.800M2.413,0.459L2.500,0.291L2.587,0.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="0.326,3.291 0.674,3.291 0.810,3.459 0.500,3.800 0.190,3.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M0.190,3.459L0.810,3.459M0.326,3.291L0.413,3.459L0.500,3.800M0.674,3.291L0.587,3.459L0.500,3.800M0.413,3.459L0.500,3.291L0.587,3.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="1.326,4.291 1.674,4.291 1.810,4.459 1.500,4.800 1.190,4.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M1.190,4.459L1.810,4.459M1.326,4.291L1.413,4.459L1.500,4.800M1.674,4.291L1.587,4.459L1.500,4.800M1.413,4.459L1.500,4.291L1.587,4.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="4.326,2.291 4.674,2.291 4.810,2.459 4.500,2.800 4.190,2.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M4.190,2.459L4.810,2.459M4.326,2.291L4.413,2.459L4.500,2.800M4.674,2.291L4.587,2.459L4.500,2.800M4.413,2.459L4.500,2.291L4.587,2.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g>
+<rect x="2.03" y="2.03" width="0.94" height="0.94" rx="0.1" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.04"/>
+<circle cx="2.21" cy="2.5" r="0.15" fill="#F2C12E"/>
+<g fill="#FFFFFF" font-size="0.27" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="2.5" y="2.21">1</text><text x="2.5" y="2.79">2</text><text x="2.21" y="2.5">2</text><text x="2.79" y="2.5">1</text></g>
+<text x="2.21" y="2.5" font-size="0.27" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#000000">2</text>
+<line x1="2.09" y1="2.57" x2="0.79" y2="3.33" stroke="#F2C12E" stroke-width="0.07" marker-end="url(#ahL)"/><line x1="2.16" y1="2.63" x2="1.61" y2="4.18" stroke="#F2C12E" stroke-width="0.07" marker-end="url(#ahL)"/>
+</svg><p>왼쪽 숫자 <b>2</b><br>왼쪽에 빨강 보석 2개</p></div><div class="gB"><svg viewBox="-0.05 -0.05 5.1 5.1" role="img" aria-label="위 숫자 <b>1</b><br>위쪽에 빨강 보석 1개">
+<defs><marker id="ahU" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#F2C12E"/></marker></defs>
+<rect x="0" y="0" width="5" height="5" rx="0.06" fill="#141414"/><rect x="0" y="0" width="5" height="2" fill="#E0312B" opacity="0.22"/>
+<g stroke="#3A3A3A" stroke-width="0.02"><line x1="1" y1="0" x2="1" y2="5"/><line x1="0" y1="1" x2="5" y2="1"/><line x1="2" y1="0" x2="2" y2="5"/><line x1="0" y1="2" x2="5" y2="2"/><line x1="3" y1="0" x2="3" y2="5"/><line x1="0" y1="3" x2="5" y2="3"/><line x1="4" y1="0" x2="4" y2="5"/><line x1="0" y1="4" x2="5" y2="4"/></g>
+<g opacity="0.85"><polygon points="2.326,0.291 2.674,0.291 2.810,0.459 2.500,0.800 2.190,0.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M2.190,0.459L2.810,0.459M2.326,0.291L2.413,0.459L2.500,0.800M2.674,0.291L2.587,0.459L2.500,0.800M2.413,0.459L2.500,0.291L2.587,0.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="0.326,3.291 0.674,3.291 0.810,3.459 0.500,3.800 0.190,3.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M0.190,3.459L0.810,3.459M0.326,3.291L0.413,3.459L0.500,3.800M0.674,3.291L0.587,3.459L0.500,3.800M0.413,3.459L0.500,3.291L0.587,3.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="1.326,4.291 1.674,4.291 1.810,4.459 1.500,4.800 1.190,4.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M1.190,4.459L1.810,4.459M1.326,4.291L1.413,4.459L1.500,4.800M1.674,4.291L1.587,4.459L1.500,4.800M1.413,4.459L1.500,4.291L1.587,4.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g><g opacity="0.85"><polygon points="4.326,2.291 4.674,2.291 4.810,2.459 4.500,2.800 4.190,2.459" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.035" stroke-linejoin="round"/><path d="M4.190,2.459L4.810,2.459M4.326,2.291L4.413,2.459L4.500,2.800M4.674,2.291L4.587,2.459L4.500,2.800M4.413,2.459L4.500,2.291L4.587,2.459" fill="none" stroke="#FFFFFF" stroke-width="0.021" stroke-linejoin="round" opacity="0.7"/></g>
+<rect x="2.03" y="2.03" width="0.94" height="0.94" rx="0.1" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.04"/>
+<circle cx="2.5" cy="2.21" r="0.15" fill="#F2C12E"/>
+<g fill="#FFFFFF" font-size="0.27" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="2.5" y="2.21">1</text><text x="2.5" y="2.79">2</text><text x="2.21" y="2.5">2</text><text x="2.79" y="2.5">1</text></g>
+<text x="2.5" y="2.21" font-size="0.27" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#000000">1</text>
+<line x1="2.50" y1="2.07" x2="2.50" y2="0.84" stroke="#F2C12E" stroke-width="0.07" marker-end="url(#ahU)"/>
+</svg><p>위 숫자 <b>1</b><br>위쪽에 빨강 보석 1개</p></div></div>
+<p class="gNote"><svg viewBox="0 0 1 1" width="18" height="18" style="vertical-align:-3px"><g opacity="0.85"><polygon points="0.248,0.188 0.752,0.188 0.950,0.431 0.500,0.926 0.050,0.431" fill="#E0312B" stroke="#FFFFFF" stroke-width="0.05" stroke-linejoin="round"/><path d="M0.050,0.431L0.950,0.431M0.248,0.188L0.374,0.431L0.500,0.926M0.752,0.188L0.626,0.431L0.500,0.926M0.374,0.431L0.500,0.188L0.626,0.431" fill="none" stroke="#FFFFFF" stroke-width="0.03" stroke-linejoin="round" opacity="0.7"/></g></svg> 숨은 보석 (게임에서는 안 보임)</p>
 <div class="gRow">
 <div class="gCard">
 <svg viewBox="0 0 3.2 1.3" role="img" aria-label="노랑 타일은 오른쪽의 빨강 보석은 세지 않고 노랑 보석만 센다">
@@ -143,7 +157,7 @@ const LIFT=44,HN=3;['h0','h1','h2','er'].forEach(id=>document.getElementById(id)
 const sq=c=>c?`<span class="sq" style="background:${FILL[c]}"></span>`:`<span class="sq blk"></span>`;
 const eq=(a,b,r)=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`;
 document.getElementById('mix').innerHTML=eq(1,2,3)+eq(2,4,6)+eq(1,4,5)+`<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>`+`<div class="mx">${sq(1)}+${sq(2)}+${sq(4)}=${sq(0)}</div>`+eq(3,4,0)+eq(3,1,0)+eq(1,1,0);
-let selCell=null,REF=true,G=7,START=10,conf=new Set(),best=0;
+let collected=false,collecting=false,selCell=null,REF=true,G=7,START=10,conf=new Set(),best=0;
 try{best=+(localStorage.getItem('sm_best')||0)}catch(e){best=0}
 let rec=[],mv=[],hand=[0,0,0],hs=0,zone=1,tiles=20,zoneStart=20,score=0,scoreStart=0,gems=[],cell={},reveal=false,phase='play',burned=0,flash=[],vanish=[],hist=[],stats={placed:0,found:0,gain:0},order=[],drag=null,target=null;
 const $=id=>document.getElementById(id),ri=n=>Math.floor(Math.random()*n),K=(x,y)=>x+','+y;
@@ -185,7 +199,7 @@ function draw(){
  for(const [k,t] of Object.entries(cell)){const [x,y]=k.split(',').map(Number);s+=tileSvg(x,y,t,false);}
  if(selCell&&cell[selCell]&&!drag){const [sx,sy]=selCell.split(',').map(Number);s+=`<rect x="${sx+0.01}" y="${sy+0.01}" width="0.98" height="0.98" rx="0.12" fill="none" stroke="#FFFFFF" stroke-width="0.07"/>`;}
  for(const v of vanish)s+=tileSvg(v.x,v.y,v.t,true);
- for(const g of done())s+=gem(g.x+0.5,g.y+0.5,0.36,"#FFFFFF","rgba(0,0,0,0.6)",0.03);
+ for(const g of done()){if(phase==='burn'){if(!g.col)s+=gem(g.x+0.5,g.y+0.52,0.74,FILL[g.c],"#FFFFFF",0.045);}else s+=gem(g.x+0.5,g.y+0.5,0.36,"#FFFFFF","rgba(0,0,0,0.6)",0.03);}
  for(const g of flash)s+=gem(g.x+0.5,g.y+0.5,0.86,"none","#FFFFFF",0.06);
  if(reveal||phase==='lost')for(const g of gems)if(!g.f)s+=gem(g.x+0.5,g.y+0.5,0.66,FILL[g.c],"#FFFFFF",0.04,0.8);
  if(drag&&drag.er&&target){const has=!!cell[K(target.x,target.y)];s+=`<rect x="${target.x+0.02}" y="${target.y+0.02}" width="0.96" height="0.96" rx="0.1" fill="#000000" fill-opacity="${has?0.9:0.2}" stroke="${has?'#FFFFFF':'#E0312B'}" stroke-width="0.07"/>`;}
@@ -197,12 +211,12 @@ function draw(){
  [0,1,2].forEach(i=>{const b=$('h'+i),c=hand[i];b.style.background=c?FILL[c]:'transparent';b.style.color=c?INK[c]:'var(--text-muted)';b.textContent=c?NAME[c]:'-';b.classList.toggle('on',hs===i&&!(selCell&&cell[selCell]));b.style.opacity=drag&&drag.i===i?0.35:1;});
 
  $('er').style.opacity=drag&&drag.er?0.35:1;$('bRef').style.display=REF&&phase==='play'?'':'none';$('rOn').classList.toggle('sel',REF);$('rOff').classList.toggle('sel',!REF);
- $('bNext').style.display=phase==='burn'?'':'none';['h0','h1','h2','er'].forEach(id=>$(id).style.display=phase==='play'?'flex':'none');$('bRetry').style.display=phase==='lost'?'':'none';
+ $('bNext').style.display=phase==='burn'&&collected?'':'none';$('bCollect').style.display=phase==='burn'&&!collected?'':'none';$('bCollect').disabled=collecting;['h0','h1','h2','er'].forEach(id=>$(id).style.display=phase==='play'?'flex':'none');$('bRetry').style.display=phase==='lost'?'':'none';
  const fc={};for(const g of done())fc[g.c]=(fc[g.c]||0)+1;
  $('found').innerHTML=`<div style="margin-bottom:8px">${done().length}개 / ${gems.length}개</div>`+(done().length?ALL.filter(c=>fc[c]).map(c=>`<div class="fr"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fc[c]}개</div>`).join(''):'<div class="lab">아직 없음</div>');
  $('rec').innerHTML=rec.length?`<table style="border-collapse:collapse;width:100%"><tr style="color:var(--text-secondary)"><td>구역</td><td>놓은</td><td>남은</td><td>찾은 보석</td><td>점수</td></tr>`+rec.map(r=>`<tr><td>${r.z}</td><td>${r.placed}</td><td>${r.left}</td><td>${r.fail?'패배':r.n}</td><td>${r.score==null?'-':r.score}</td></tr>`).join('')+`</table>`:'<div class="lab">구역을 끝내면 여기에 쌓입니다</div>';
  const S=sched(zone);
- $('stat').innerHTML=`<div class="big"><span>${zone}구역</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b>${score}</b></span><span class="muted">최고 ${best}</span></div><div class="small">숨은 보석 ${live().length}개 · 보석을 찾으면 타일 +${S.gain}개 · 나올 수 있는 색: ${pal().map(c=>NAME[c]).join('·')}</div>`;
+ $('stat').innerHTML=`<div class="big"><span>${zone}구역</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b id="scoreNum">${score}</b></span><span class="muted">최고 ${best}</span></div><div class="small">숨은 보석 ${live().length}개 · 보석을 찾으면 타일 +${S.gain}개 · 나올 수 있는 색: ${pal().map(c=>NAME[c]).join('·')}</div>`;
  $('sch').textContent=`이번 구역 값: 보석 ${spec(zone).n}개 · 섞은 색 보석 최소 ${Math.round(S.mixMin*100)}% · 성분 색 가중치 ${S.pw}배 · 보석 찾으면 타일 +${S.gain}개`;
  $('log').textContent=`이번 구역: 놓은 횟수 ${stats.placed}, 찾은 보석 ${stats.found}, 찾아서 받은 타일 ${stats.gain}`+(reveal||phase!=='play'?` · 보석 구성: ${ALL.filter(c=>gems.some(g=>g.c===c)).map(c=>NAME[c]+' '+gems.filter(g=>g.c===c).length).join(', ')}`:'');
  $('done').innerHTML=pal().map(c=>{const fin=conf.has(c);return `<div class="fr" style="opacity:${fin?0.45:1}"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fin?'<b style="font-weight:500">완료</b>':''}</div>`;}).join('');
@@ -211,7 +225,7 @@ function draw(){
 function msg(t,d){$('msg').textContent=t;$('msg').style.color=d?'var(--text-danger)':'var(--text-primary)';}
 function snap(){return {cell:{...cell},f:gems.map(g=>g.f),tiles,score,phase,burned,stats:{...stats},order:[...order],hand:[...hand],hs,conf:[...conf],mv:[...mv],rec:JSON.parse(JSON.stringify(rec))};}
 function setBest(){if(score>best){best=score;try{localStorage.setItem('sm_best',String(best))}catch(e){}}}
-function startZone(newLayout){selCell=null;const sp=spec(zone);if(newLayout)gems=place(sp.n,sp.nc);else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
+function startZone(newLayout){collected=false;collecting=false;selCell=null;const sp=spec(zone);if(newLayout)gems=place(sp.n,sp.nc);else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
  hand=Array.from({length:HN},draw1);hs=0;
  if(tiles<=0){phase='lost';setBest();msg(`남은 타일이 없어 ${zone}구역을 시작할 수 없습니다. 최종 점수 ${score}점 · 최고 ${best}점.`,true);draw();return;}
  msg(`${zone}구역 · 숨은 보석 ${gems.length}개.`+(sp.nc&&zone>1?` 새 색: ${NAME[sp.nc]} 보석이 이번 구역에 적어도 하나 있습니다.`:zone>1?'':' 타일을 끌어 칸에 놓으세요. 숫자는 그쪽에 같은 색 보석이 몇 개 있는지 알려 줍니다.')+` 보석을 찾으면 타일 ${sched(zone).gain}개를 받습니다.`);draw();}
@@ -223,7 +237,7 @@ function placeAt(x,y,i){selCell=null;const h=hand[i];const k=K(x,y),t=cell[k]||0
  hist.push(snap());
  const nt=result(t,h),w=why(t,h);flash=[];vanish=[];const parts=[];stats.placed++;
  const g=gems.find(q=>!q.f&&q.x===x&&q.y===y);
- if(nt&&g&&g.c===nt){g.f=true;order.push(g.c);cell[k]=nt;stats.found++;score+=10;tiles+=S.gain;stats.gain+=S.gain;flash=[g];parts.push(`${NAME[nt]} 보석을 찾았습니다(+10점). 타일 ${S.gain}개를 받았습니다.`);}
+ if(nt&&g&&g.c===nt){g.f=true;order.push(g.c);cell[k]=nt;stats.found++;tiles+=S.gain;stats.gain+=S.gain;flash=[g];parts.push(`${NAME[nt]} 보석을 찾았습니다! 타일 ${S.gain}개를 받았습니다.`);}
  else{tiles--;
   if(!nt){delete cell[k];parts.push(w==='same'?'같은 색이 겹쳐 칸이 비워졌습니다.':'세 색이 모여 칸이 비워졌습니다.');}
   else{cell[k]=nt;parts.push(w==='mix'?`섞여서 ${NAME[nt]} 타일이 되었습니다.`:`${NAME[nt]} 타일을 놓았습니다.`);}}
@@ -235,8 +249,8 @@ function placeAt(x,y,i){selCell=null;const h=hand[i];const k=K(x,y),t=cell[k]||0
   for(const [kk,tt] of Object.entries(cell)){const [a2,b2]=kk.split(',').map(Number);vanish.push({x:a2,y:b2,t:tt});if(present.has(tt)){n++;per[tt]=(per[tt]||0)+1;}}
   cell={};hand=[0,0,0];let cut=0;
   rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:tiles,settle:n,cut,score,gems:gems.map(q=>`${NAME[q.c]}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});
-  parts.push(`${zone}구역을 다 찾았습니다. 남은 타일 ${tiles}개로 다음 구역에 갑니다.`);}
- else if(tiles<=0){phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}
+  parts.push(`${zone}구역 클리어! 확인을 누르면 찾은 보석 ${gems.length}개를 모읍니다.`);}
+ else if(tiles<=0){score+=10*done().filter(q=>!q.col).length;done().forEach(q=>q.col=true);phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}
  msg(parts.join(' '),phase==='lost');draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function moveGhost(e,lift){if(e.clientY>=$('handRow').getBoundingClientRect().top-4)lift=0;const r=$('root').getBoundingClientRect(),gh=$('ghost');gh.style.left=(e.clientX-r.left-26)+'px';gh.style.top=(e.clientY-r.top-26-lift)+'px';if(drag&&(drag.c||drag.er)){if(!drag.mv&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>14)drag.mv=true;const top=$('handRow').getBoundingClientRect().top;target=(drag.mv&&e.clientY<top)?cellAt(e.clientX,e.clientY-lift):null;}draw();}
 [0,1,2].forEach(i=>{const el=$('h'+i);
@@ -244,7 +258,7 @@ function moveGhost(e,lift){if(e.clientY>=$('handRow').getBoundingClientRect().to
  el.addEventListener('pointermove',e=>{if(drag)moveGhost(e,LIFT);});
  el.addEventListener('pointerup',()=>{if(!drag)return;const d=drag,t=target;drag=null;target=null;$('ghost').style.display='none';if(t)placeAt(t.x,t.y,d.i);else{msg('판 밖에서 놓아 타일이 제자리로 돌아갔습니다.');draw();}});
  el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});});
-function lostCheck(parts){if(tiles<=0&&live().length){phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}}
+function lostCheck(parts){if(tiles<=0&&live().length){score+=10*done().filter(q=>!q.col).length;done().forEach(q=>q.col=true);phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}}
 function eraseAt(x,y){selCell=null;const k=K(x,y);if(!cell[k]){msg('빈 칸에는 지우개를 놓을 수 없습니다. 타일은 줄지 않았습니다.');draw();return;}hist.push(snap());const t=cell[k];delete cell[k];tiles--;stats.placed++;mv.push(`지우개(${x+1},${y+1})`);const parts=[`${NAME[t]} 타일을 지웠습니다. 타일 1개를 썼습니다.`];lostCheck(parts);msg(parts.join(' '),phase==='lost');draw();}
 {const el=$('er');
  el.addEventListener('pointerdown',e=>{if(phase!=='play')return;e.preventDefault();el.setPointerCapture(e.pointerId);drag={er:true,sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background='#141414';gh.style.color='#FFFFFF';gh.textContent='지우개';moveGhost(e,LIFT);});
@@ -264,6 +278,14 @@ $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.
 function guide(on){$('guide').classList.toggle('show',on);}
 $('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms_guide','1')}catch(e){}};
 try{if(!localStorage.getItem('ms_guide'))guide(true);}catch(e){guide(true);}
+function collect(){if(collecting||collected)return;collecting=true;draw();const list=done().filter(g=>!g.col);const root=$('root'),rr=root.getBoundingClientRect();let i=0;
+ const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;msg(`보석 ${list.length}개를 모았습니다. +${list.length*10}점. 남은 타일 ${tiles}개로 다음 구역에 갑니다.`);draw();},420);return;}
+  const g=list[i++],fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('scoreNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
+  g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.width=w+'px';f.style.height=w+'px';f.style.left=(sx-w/2)+'px';f.style.top=(sy-w/2)+'px';f.innerHTML=`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(0.35)`;f.style.opacity='0.9';}));
+  setTimeout(()=>{f.remove();score+=10;draw();const n=$('scoreNum');n.classList.remove('bump');void n.offsetWidth;n.classList.add('bump');},520);setTimeout(step,260);};
+ step();}
+$('bCollect').onclick=collect;
 function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
 jump(1);fit();setTimeout(fit,300);
