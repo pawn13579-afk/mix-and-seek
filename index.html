@@ -2,56 +2,62 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Mix &amp; Seek 프로토타입</title>
 <style>
 :root{--bg:#F7F6F2;--text-primary:#1F1E1C;--text-secondary:#5F5E5A;--text-muted:#888780;--text-danger:#C0392B;--surface-1:#ECEAE3;--border:rgba(0,0,0,0.12);--border-strong:rgba(0,0,0,0.28);--border-accent:#2A6FDB;--radius:8px}
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--text-primary:#EDECE8;--text-secondary:#B4B2A9;--text-muted:#888780;--text-danger:#F09595;--surface-1:#242422;--border:rgba(255,255,255,0.12);--border-strong:rgba(255,255,255,0.28);--border-accent:#85B7EB}}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-tap-highlight-color:transparent}
-body{overscroll-behavior:none}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;touch-action:none}
+body.dev{overflow:auto;touch-action:auto}
 button{font:inherit;color:var(--text-primary);background:transparent;border:1px solid var(--border-strong);border-radius:var(--radius);padding:8px 12px;cursor:pointer}
-#root{max-width:480px;margin:0 auto;padding:10px 16px 40px;position:relative}
-#stat .big{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;font-size:16px}
-#stat .big b{font-size:20px;font-weight:600}
-#stat .muted{color:var(--text-muted);font-size:14px}
-#stat .small{font-size:12px;color:var(--text-secondary);margin:4px 0 8px}
-.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
-.sel{border:2px solid var(--border-accent)!important}
-.lab{font-size:13px;color:var(--text-secondary)}
-#msg{font-size:14px;min-height:42px;margin:4px 0 0;line-height:1.5}
-.tools{border-top:1px solid var(--border);margin-top:14px;padding-top:12px;display:none}
-.tools input{width:64px}
-.zb{min-width:0;padding:4px 10px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.card{background:var(--surface-1);border-radius:var(--radius);padding:10px 12px;font-size:13px}
-.card.wide{grid-column:1 / -1}
-.fr{display:flex;align-items:center;gap:6px;margin:4px 0}
-.dot{width:14px;height:14px;border-radius:50%;display:inline-block}
-.mx{display:inline-flex;align-items:center;gap:4px;margin:3px 10px 3px 0;font-size:13px;color:var(--text-secondary)}
-.sq{width:18px;height:18px;border-radius:4px;display:inline-block}
-.blk{background:#141414;border:1.5px solid var(--border-strong)}
-.hand{width:52px;height:52px;border-radius:10px;border:3px solid transparent;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;padding:0;touch-action:none;user-select:none;-webkit-user-select:none}
+#root{max-width:520px;height:100vh;height:100dvh;margin:0 auto;padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;position:relative}
+body.dev #root{height:auto}
+#stat .big{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;font-size:15px}
+#stat .big b{font-size:19px;font-weight:600}
+#stat .muted{color:var(--text-muted);font-size:13px}
+#stat .small{font-size:11px;color:var(--text-secondary);margin-top:2px}
+#boardWrap{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center}
+body.dev #boardWrap{height:min(92vw,480px);flex:none}
+#fld{display:block;touch-action:none}
+.row{display:flex;flex-wrap:nowrap;gap:6px;align-items:center}
+#handRow{justify-content:center;min-height:52px}
+.hand{touch-action:none;width:52px;height:52px;flex:none;border-radius:10px;border:3px solid transparent;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;padding:0;user-select:none;-webkit-user-select:none}
 .er{background:#141414;color:#FFFFFF;border:3px solid var(--border-strong)!important;margin-left:2px}
 .hand.on{border-color:var(--text-primary)}
-#bRef{height:52px;padding:0 8px;font-size:11px;line-height:1.3}
+#bRef{height:52px;padding:0 8px;font-size:11px;line-height:1.3;flex:none}
+#bNext,#bRetry{height:52px;padding:0 20px;font-size:15px;font-weight:600}
+#msg{font-size:13px;line-height:1.45;height:56px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+#info{background:var(--surface-1);border-radius:var(--radius);padding:6px 10px;font-size:12px}
+.mx{display:inline-flex;align-items:center;gap:2px;margin:1px 8px 1px 0;font-size:11px;color:var(--text-secondary)}
+.sq{width:12px;height:12px;border-radius:3px;display:inline-block}
+.blk{background:#141414;border:1px solid var(--border-strong)}
+#mix div[style]{display:none}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:4px;border-top:1px solid var(--border);padding-top:4px}
+.lab{font-size:12px;color:var(--text-secondary)}
+#done{display:inline-flex;flex-wrap:wrap;gap:2px 8px}
+#done .fr{display:inline-flex;align-items:center;gap:3px;margin:0}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+#found{display:inline}
+#found > div:first-child{display:inline;margin:0!important}
+#found .fr,#found .lab,#found > div:not(:first-child){display:none}
+.tools{border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:none}
+.tools .row{flex-wrap:wrap;margin-bottom:8px}
+.tools input{width:64px}
+.zb{min-width:0;padding:4px 10px}
+.sel{border:2px solid var(--border-accent)!important}
 #ghost{position:absolute;width:52px;height:52px;border-radius:9px;pointer-events:none;display:none;align-items:center;justify-content:center;font-size:12px;font-weight:600;opacity:0.92;border:2px solid #FFFFFF;z-index:5}
-table td{padding:2px 4px}
+
 </style>
 </head>
 <body>
 <div id="root">
 <div id="stat"></div>
-<svg id="fld" viewBox="-0.1 -0.1 7.2 7.2" style="width:100%;display:block;touch-action:none"></svg>
-<div class="row" id="handRow" style="margin-top:10px"><div class="hand" id="h0"></div><div class="hand" id="h1"></div><div class="hand" id="h2"></div><div class="hand er" id="er">지우개</div><button id="bRef" style="display:none">바꾸기<br>(타일 1개)</button></div>
+<div id="boardWrap"><svg id="fld" viewBox="-0.1 -0.1 7.2 7.2"></svg></div>
+<div class="row" id="handRow"><div class="hand" id="h0"></div><div class="hand" id="h1"></div><div class="hand" id="h2"></div><div class="hand er" id="er">지우개</div><button id="bRef" style="display:none">바꾸기<br>(타일 1개)</button><button id="bNext" style="display:none">다음 구역</button><button id="bRetry" style="display:none">다시 하기</button></div>
 <div id="msg"></div>
-<div class="row" style="margin-top:6px"><button id="bNext" style="display:none">다음 구역</button><button id="bRetry" style="display:none">다시 하기</button></div>
-<div class="cards">
-<div class="card wide" id="mix"></div>
-<div class="card"><div class="lab" style="margin-bottom:4px">색별 현황</div><div id="done"></div></div>
-<div class="card"><div class="lab" style="margin-bottom:4px">찾은 보석</div><div id="found"></div></div>
+<div id="info"><div id="mix"></div><div class="line"><span class="lab">색</span><span id="done"></span><span class="lab">찾은 보석</span><span id="found"></span></div></div>
 <div id="rec" style="display:none"></div>
-</div>
 <div class="tools" id="devTools">
 <div class="row"><span class="lab">구역 바로 가기</span><span id="zbs" style="display:flex;flex-wrap:wrap;gap:6px"></span></div>
 <div class="row"><span class="lab">테스트 도구</span><button id="bUndo">되돌리기</button><button id="bShow">정답 보기</button><button id="bSame">이 구역 처음부터</button><button id="bNew">새 게임</button><button id="bAdd">타일 +5</button></div>
@@ -62,10 +68,11 @@ table td{padding:2px 4px}
 </div>
 <div id="ghost"></div>
 </div>
+
 <script>
 const FILL={1:'#E0312B',2:'#F2C12E',4:'#2A6FDB',3:'#F07F1A',6:'#2E9E4F',5:'#8E44AD'},INK={1:'#FFFFFF',2:'#000000',4:'#FFFFFF',3:'#000000',6:'#FFFFFF',5:'#FFFFFF'};
 const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},PRIM=[1,2,4],ALL=[1,2,4,3,6,5],ORDER=[1,2,4,3,6,5];
-const LIFT=44,HN=3;if(location.search.indexOf('dev')>=0)document.getElementById('devTools').style.display='block';
+const LIFT=44,HN=3;['h0','h1','h2','er'].forEach(id=>document.getElementById(id).addEventListener('touchstart',e=>e.preventDefault(),{passive:false}));document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});if(location.search.indexOf('dev')>=0){document.getElementById('devTools').style.display='block';document.body.classList.add('dev');}
 const sq=c=>c?`<span class="sq" style="background:${FILL[c]}"></span>`:`<span class="sq blk"></span>`;
 const eq=(a,b,r)=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`;
 document.getElementById('mix').innerHTML=eq(1,2,3)+eq(2,4,6)+eq(1,4,5)+`<div style="border-top:0.5px solid var(--border);margin:8px 0"></div>`+`<div class="mx">${sq(1)}+${sq(2)}+${sq(4)}=${sq(0)}</div>`+eq(3,4,0)+eq(3,1,0)+eq(1,1,0);
@@ -114,7 +121,7 @@ function draw(){
  [0,1,2].forEach(i=>{const b=$('h'+i),c=hand[i];b.style.background=c?FILL[c]:'transparent';b.style.color=c?INK[c]:'var(--text-muted)';b.textContent=c?NAME[c]:'-';b.classList.toggle('on',hs===i);b.style.opacity=drag&&drag.i===i?0.35:1;});
 
  $('er').style.opacity=drag&&drag.er?0.35:1;$('bRef').style.display=REF&&phase==='play'?'':'none';$('rOn').classList.toggle('sel',REF);$('rOff').classList.toggle('sel',!REF);
- $('bNext').style.display=phase==='burn'?'':'none';$('bRetry').style.display=phase==='lost'?'':'none';
+ $('bNext').style.display=phase==='burn'?'':'none';['h0','h1','h2','er'].forEach(id=>$(id).style.display=phase==='play'?'flex':'none');$('bRetry').style.display=phase==='lost'?'':'none';
  const fc={};for(const g of done())fc[g.c]=(fc[g.c]||0)+1;
  $('found').innerHTML=`<div style="margin-bottom:8px">${done().length}개 / ${gems.length}개</div>`+(done().length?ALL.filter(c=>fc[c]).map(c=>`<div class="fr"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fc[c]}개</div>`).join(''):'<div class="lab">아직 없음</div>');
  $('rec').innerHTML=rec.length?`<table style="border-collapse:collapse;width:100%"><tr style="color:var(--text-secondary)"><td>구역</td><td>놓은</td><td>남은</td><td>찾은 보석</td><td>점수</td></tr>`+rec.map(r=>`<tr><td>${r.z}</td><td>${r.placed}</td><td>${r.left}</td><td>${r.fail?'패배':r.n}</td><td>${r.score==null?'-':r.score}</td></tr>`).join('')+`</table>`:'<div class="lab">구역을 끝내면 여기에 쌓입니다</div>';
@@ -152,7 +159,7 @@ function placeAt(x,y,i){const h=hand[i];const k=K(x,y),t=cell[k]||0;const S=sche
   for(const [kk,tt] of Object.entries(cell)){const [a2,b2]=kk.split(',').map(Number);vanish.push({x:a2,y:b2,t:tt});if(present.has(tt)){n++;per[tt]=(per[tt]||0)+1;}}
   cell={};hand=[0,0,0];let cut=0;
   rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:tiles,settle:n,cut,score,gems:gems.map(q=>`${NAME[q.c]}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});
-  parts.push(`${zone}구역을 모두 찾았습니다. 판의 타일을 치웠습니다. 남은 타일 ${tiles}개를 들고 다음 구역으로 갑니다.`);}
+  parts.push(`${zone}구역을 다 찾았습니다. 남은 타일 ${tiles}개로 다음 구역에 갑니다.`);}
  else if(tiles<=0){phase='lost';setBest();rec=rec.filter(r=>r.z!==zone);rec.push({z:zone,n:gems.length,placed:stats.placed,left:0,fail:true,score,gems:gems.map(q=>`${NAME[q.c]}${q.f?'*':''}(${q.x+1},${q.y+1})`).join(' '),mv:mv.join(' ')});parts.push(`타일이 바닥났습니다. ${zone}구역에서 끝. 최종 점수 ${score}점 · 최고 ${best}점.`);}
  msg(parts.join(' '),phase==='lost');draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function moveGhost(e,lift){const r=$('root').getBoundingClientRect(),gh=$('ghost');gh.style.left=(e.clientX-r.left-26)+'px';gh.style.top=(e.clientY-r.top-26-lift)+'px';if(drag&&(drag.c||drag.er))target=cellAt(e.clientX,e.clientY-lift);draw();}
@@ -177,7 +184,9 @@ $('bNew').onclick=()=>jump(1);
 $('bSame').onclick=()=>startZone(false);
 $('bShow').onclick=()=>{reveal=!reveal;draw();};
 $('bAdd').onclick=()=>{hist.push(snap());tiles+=5;if(phase==='lost'&&live().length)phase='play';msg('테스트용으로 타일 5개를 더했습니다.');draw();};
-jump(1);
+function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
+window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
+jump(1);fit();setTimeout(fit,300);
 </script>
 
 </body>
