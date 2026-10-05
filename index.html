@@ -112,6 +112,8 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 <div class="tools" id="devTools">
 <div class="row"><span class="lab">구역 바로 가기</span><span id="zbs" style="display:flex;flex-wrap:wrap;gap:6px"></span></div>
 <div class="row"><span class="lab">테스트 도구</span><button id="bUndo">되돌리기</button><button id="bShow">정답 보기</button><button id="bSame">이 구역 처음부터</button><button id="bNew">새 게임</button><button id="bAdd">타일 +5</button></div>
+<div class="row"><span class="lab">숫자 표시</span><button class="zb" data-num="n">숫자</button><button class="zb" data-num="a">숫자+화살표</button><button class="zb" data-num="g">점 개수</button></div>
+<div class="row"><span class="lab">타일 모양</span><button class="zb" data-shape="s">네모</button><button class="zb" data-shape="d">마름모</button></div>
 <div class="row"><span class="lab">리프레시 버튼</span><button class="zb" id="rOn">켬</button><button class="zb" id="rOff">끔</button></div>
 <div class="row"><span class="lab">값</span><label class="lab">판 크기 <input id="iG" type="number" min="5" max="9" step="1" value="7"></label><label class="lab">시작 타일 <input id="iS" type="number" min="1" max="99" step="1" value="10"></label></div>
 <div id="sch" style="font-size:12px;color:var(--text-secondary);margin-bottom:6px"></div>
@@ -206,9 +208,26 @@ function gem(cx,cy,w,fill,stroke,sw,op){
  return `<g opacity="${op==null?1:op}"><polygon points="${outer}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/><path d="${fac}" fill="none" stroke="${stroke}" stroke-width="${sw*0.6}" stroke-linejoin="round" opacity="0.7"/></g>`;
 }
 
-function tileSvg(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],m=0.05,cx=x+0.5,cy=y+0.5,d=0.31,fs=0.27;
- const tx=(a,b,v)=>`<text x="${a}" y="${b}" font-size="${fs}" fill="${ink}" text-anchor="middle" dominant-baseline="central" style="font-weight:500">${v}</text>`;
- return `<rect x="${x+m}" y="${y+m}" width="${1-2*m}" height="${1-2*m}" rx="0.1" fill="${FILL[t]}" stroke="${ring?'#FFFFFF':'none'}" stroke-width="0.08"/>`+(ring?'':tx(cx,cy-d,c.u)+tx(cx,cy+d,c.d)+tx(cx-d,cy,c.l)+tx(cx+d,cy,c.r));}
+let NUMMODE='n',SHAPE='s';
+try{const q=new URLSearchParams(location.search);NUMMODE=q.get('num')||'n';SHAPE=q.get('shape')||'s';}catch(e){}
+function tileSvg(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],cx=x+0.5,cy=y+0.5,dia=SHAPE==='d';
+ const d=dia?0.27:0.31,fs=dia?0.23:0.27;
+ const shape=dia?`<polygon points="${cx},${y+0.02} ${x+0.98},${cy} ${cx},${y+0.98} ${x+0.02},${cy}" fill="${FILL[t]}" stroke="${ring?'#FFFFFF':'none'}" stroke-width="0.07" stroke-linejoin="round"/>`
+  :`<rect x="${x+0.05}" y="${y+0.05}" width="0.9" height="0.9" rx="0.1" fill="${FILL[t]}" stroke="${ring?'#FFFFFF':'none'}" stroke-width="0.08"/>`;
+ if(ring)return shape;
+ const tx=(a,b,v)=>`<text x="${a}" y="${b}" font-size="${fs}" fill="${ink}" text-anchor="middle" dominant-baseline="central" style="font-weight:600">${v}</text>`;
+ let o='';
+ for(const [k,dx,dy] of [['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]]){const v=c[k],px=cx+dx*d,py=cy+dy*d;
+  if(NUMMODE==='g'){
+   if(v===0)o+=`<line x1="${px-dy*0+(dx?0:-0.05)}" y1="${py+(dx?-0.05:0)}" x2="${px+(dx?0:0.05)}" y2="${py+(dx?0.05:0)}" stroke="${ink}" stroke-width="0.03" opacity="0.6"/>`;
+   else if(v<=4){for(let i=0;i<v;i++){const off=(i-(v-1)/2)*0.095;o+=`<circle cx="${px+(dx?0:off)}" cy="${py+(dx?off:0)}" r="0.038" fill="${ink}"/>`;}}
+   else o+=tx(px,py,v);
+  } else o+=tx(px,py,v);
+  if(NUMMODE==='a'&&!dia){const ax=cx+dx*0.425,ay=cy+dy*0.425,s=0.075;
+   o+=`<polygon points="${ax+dx*s},${ay+dy*s} ${ax-dx*s+dy*s},${ay-dy*s+dx*s} ${ax-dx*s-dy*s},${ay-dy*s-dx*s}" fill="${ink}" opacity="0.85"/>`;}
+ }
+ return shape+o;}
+
 function draw(){
  $('fld').setAttribute('viewBox',`-0.1 -0.1 ${G+0.2} ${G+0.2}`);
  const vc=drag&&drag.c?drag.c:(selCell&&cell[selCell]?cell[selCell]:hand[hs]);
@@ -310,6 +329,8 @@ function collect(){if(collecting||collected)return;collecting=true;draw();const 
  step();}
 $('bCollect').onclick=collect;
 $('mixBtn').onclick=()=>$('mixPop').classList.add('show');$('mixPop').onclick=e=>{if(e.target.id==='mixPop'||e.target.id==='mixClose')$('mixPop').classList.remove('show');};
+document.querySelectorAll('[data-num]').forEach(b=>b.onclick=()=>{NUMMODE=b.dataset.num;draw();markOpt();});document.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{SHAPE=b.dataset.shape;draw();markOpt();});
+function markOpt(){document.querySelectorAll('[data-num]').forEach(b=>b.classList.toggle('sel',b.dataset.num===NUMMODE));document.querySelectorAll('[data-shape]').forEach(b=>b.classList.toggle('sel',b.dataset.shape===SHAPE));}markOpt();
 function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
 jump(1);fit();setTimeout(fit,300);
