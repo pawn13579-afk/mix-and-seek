@@ -585,7 +585,7 @@ function offerList(){const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='per
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');}
 function renderShop(){const nx=spec(zone+1);$('shopTiles').innerHTML=`${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`${IC.coin}<b>${money}</b>`;
  $('shopNext').innerHTML=`${IC.next}<span class="st">${IC.zone}<b>${zone+1}</b></span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="st">${IC.gemW}<b>${nx.n}</b></span>${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}</span>`:''}`;
- $('tileSlotL').innerHTML=`<span class="plus">+2</span>${IC.tile}`;$('buyTile').innerHTML=`${IC.coin}1`;$('buyTile').disabled=money<1;
+ $('tileSlotL').innerHTML=`<span class="plus">+3</span>${IC.tile}`;$('buyTile').innerHTML=`${IC.coin}2`;$('buyTile').disabled=money<2;
  $('shopItems').innerHTML=shop.items.map((id,i)=>{const it=ITEMS[id],sold=shop.bought!==null;const full=it.k==='hold'&&bag.length>=3;
   const dis=sold||money<it.p||full;return `<div class="item${shop.bought===i?' sold':''}" data-info="${i}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}<span class="tag">${KIC[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check:full?IC.bag+IC.close:IC.coin+it.p}</button></div>`;}).join('');
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(+b.dataset.buy);});document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>b.classList.toggle('open'));
@@ -593,7 +593,7 @@ function renderShop(){const nx=spec(zone+1);$('shopTiles').innerHTML=`${IC.tile}
  const icons=[...bag.map(b=>ITEM_IC[b.id]),...Object.keys(nextFx).map(k=>ITEM_IC[k]),...Object.keys(perm).map(k=>ITEM_IC[k]),...(spanLeft?[ITEM_IC.bonus]:[])];$('shopBag').innerHTML=`<span class="st">${IC.bag}<b>${bag.length}/3</b></span>`+icons.join('');}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;money-=it.p;shop.bought=i;
  if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;renderShop();}
-$('buyTile').onclick=()=>{if(money<1)return;money--;tiles+=2;renderShop();};
+$('buyTile').onclick=()=>{if(money<2)return;money-=2;tiles+=3;renderShop();};
 $('reroll').onclick=()=>{const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;shop.items=offerList();renderShop();};
 $('shopGo').onclick=()=>{$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone();};
 
