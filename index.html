@@ -187,6 +187,16 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .sk .oBig{font-size:34px}.sk .oSub{font-size:16px}
 .sk #bRef small{font-size:10px}
 .sk #bag:empty{display:none}
+.sk #fld polygon,.sk #fld path,.sk #fld rect,.sk #fld line,.sk #fld circle{shape-rendering:crispEdges}
+.sk #fld line{stroke-width:0.077;stroke-dasharray:0.077 0.077}
+.sk #fld g[opacity="0.55"]{opacity:0.8}.sk #fld g[opacity="0.55"] rect{fill:url(#dith)}
+.sk #fld text{font-family:"Press Start 2P",monospace;font-size:0.22px}
+.sk .ic.px{image-rendering:pixelated}
+.sk .fly img{width:100%;height:auto}
+.sk .pickC img,.sk #peekList img{display:block}
+.sk #guide{background:#000}.sk .gIn h2{font-size:16px;line-height:1.6}.sk .gBig{font-size:13px;line-height:1.8}.sk .gNote,.sk .gB p,.sk .gCard p,.sk .gMix{font-size:11px;line-height:1.8}
+.sk .gCard{background:#1C1A33;border:3px solid #4A4580}.skB #guide{background:#2E7A2A}
+.sk .gMix img{vertical-align:middle}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -328,8 +338,8 @@ const ITEM_IC={
  double:sv(G24(8,10,12,'#8E44AD')+G24(15,15,12,'#8E44AD')),
  probe:sv('<circle cx="10" cy="10" r="6.5"/>'+G24(10,10.5,7,'#E0312B')+'<path d="M15 15l6 6" stroke-width="2.6"/>')};
 const KIC={hold:IC.bag,next:sv('<path d="M4 12h9"/><path d="M10 8l4 4-4 4"/><text x="19" y="16.5" font-size="11" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">1</text>'),span:sv('<path d="M4 12h9"/><path d="M10 8l4 4-4 4"/><text x="19" y="16.5" font-size="11" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">5</text>'),perm:IC.inf};
-const miniTile=(c,v,sz)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}"><polygon points="${dia(0,0,0.02)}" fill="${FILL[c]}"/>${[['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]].map(([k,dx,dy])=>`<text x="${0.5+dx*0.27}" y="${0.5+dy*0.27}" font-size="0.23" fill="${INK[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${v[k]}</text>`).join('')}</svg>`;
-const gemSvg=(c,sz,filled)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}">${filled===false?gem(0.5,0.52,0.88,'none',FILL[c],0.08):gem(0.5,0.52,0.9,FILL[c],'#FFFFFF',0.05)}</svg>`;
+let miniTile=(c,v,sz)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}"><polygon points="${dia(0,0,0.02)}" fill="${FILL[c]}"/>${[['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]].map(([k,dx,dy])=>`<text x="${0.5+dx*0.27}" y="${0.5+dy*0.27}" font-size="0.23" fill="${INK[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${v[k]}</text>`).join('')}</svg>`;
+let gemSvg=(c,sz,filled)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}">${filled===false?gem(0.5,0.52,0.88,'none',FILL[c],0.08):gem(0.5,0.52,0.9,FILL[c],'#FFFFFF',0.05)}</svg>`;
 const big=(h)=>`<div class="tBig">${h}</div>`;
 
 // ---------- 레트로 옷 (?skin=a 밤 미로, ?skin=b 흙 마당) · 시험용 ----------
@@ -378,14 +388,72 @@ const SK=SKIN?(function(theme){
  const PS=`style="image-rendering:pixelated"`;
  return {
   margin:3/PC,
-  board:G=>`<image href="${boardURL(G)}" x="${-3/PC}" y="${-3/PC}" width="${G+6/PC}" height="${G+6/PC}" ${PS}/>`,
+  board:G=>`<defs><pattern id="dith" width="${2/PC}" height="${2/PC}" patternUnits="userSpaceOnUse"><rect width="${1/PC}" height="${1/PC}" fill="#000"/><rect x="${1/PC}" y="${1/PC}" width="${1/PC}" height="${1/PC}" fill="#000"/></pattern></defs><image href="${boardURL(G)}" x="${-3/PC}" y="${-3/PC}" width="${G+6/PC}" height="${G+6/PC}" ${PS}/>`,
   tile:(x,y,t,v,op)=>`<image href="${tileURL(t,v)}" x="${x}" y="${y}" width="${(PC+2)/PC}" height="${(PC+2)/PC}" ${PS}${op!=null?` opacity="${op}"`:''}/>`,
   gem:(cx,cy,c,mode,sc)=>{const w=9/PC*(sc||1),h=8/PC*(sc||1);return `<image href="${gemURL(c,mode)}" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" ${PS}/>`;},
   handImg:c=>`<img class="pxh" src="${tileURL(c,null)}" alt="">`,
   eraserImg:()=>`<img class="pxh" src="${eraserURL()}" alt="">`,
   gemImg:(c,filled)=>`<img class="gIco px" src="${gemURL(c,filled?'full':'empty')}" alt="">`,
-  tileURL,eraserURL};
+  tileURL,eraserURL,h:{url,R,map,digit,numAt,shadow,tileDraw,tileURL,gemURL,PF,LIGHT,DARK,GEM}};
 })(SKIN):null;
+
+// ---------- 레트로 옷: 아이콘, 창, 가이드 ----------
+if(SK){(function(){
+ const {url,R,map,digit,tileURL,gemURL,PF,LIGHT,DARK,GEM}=SK.h;
+ const img=(k,w,h,fn,cls)=>`<img class="ic px${cls?' '+cls:''}" src="${url('I'+k,fn,w,h)}" alt="">`;
+ const line=(x,x0,y0,x1,y1,c)=>{let dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,e=dx+dy;for(;;){R(x,x0,y0,1,1,c);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>=dy){e+=dy;x0+=sx;}if(e2<=dx){e+=dx;y0+=sy;}}};
+ const dfill=(x,cx,cy,r,c,o)=>{for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const d=Math.abs(i)+Math.abs(j);if(d>r)continue;R(x,cx+i,cy+j,1,1,d===r?(o||'#111'):(i+j<0?LIGHT[c]||c:PF[c]||c));}};
+ const gemAt=(x,ox,oy,c,mode)=>map(x,ox,oy,GEM,mode==='white'?{o:'#111',w:'#FFF',L:'#FFFFFF',M:'#E4E4EE',D:'#A9A9BC'}:{o:'#111',w:'#FFF',L:LIGHT[c],M:PF[c],D:DARK[c]});
+ const coin=(x,ox,oy)=>map(x,ox,oy,['.oooo.','oYWYDo','oWYYDo','oYYYDo','oYDDDo','.oooo.'],{o:'#111',Y:'#F6C430',W:'#FFF6C8',D:'#B8860B'});
+ const W='#FFFFFF';
+ const M=(k,rows,pal)=>img(k,rows[0].length,rows.length,x=>map(x,0,0,rows,pal));
+ // 일반 아이콘
+ IC.mix=img('mix',16,16,x=>{dfill(x,6,6,5,1);dfill(x,10,6,5,2);dfill(x,8,10,5,4);});
+ IC.refresh=M('ref',['....oooo....','..oo....o.o.','.o.......oo.','.o......ooo.','o...........','o...........','...........o','...........o','.ooo......o.','.oo.......o.','.o.o....oo..','.....oooo...'],{o:W});
+ IC.check=M('chk',['..........oo','.........oo.','........oo..','.......oo...','oo....oo....','.oo..oo.....','..oooo......','...oo.......'],{o:W});
+ IC.close=M('cls',['oo......oo','.oo....oo.','..oo..oo..','...oooo...','....oo....','...oooo...','..oo..oo..','.oo....oo.','oo......oo'],{o:W});
+ IC.play=M('ply',['oo......','oooo....','oooooo..','oooooooo','oooooo..','oooo....','oo......'],{o:'#1A1A1A'});
+ IC.next=M('nxt',['......o...','......oo..','oooooooooo','oooooooooo','......oo..','......o...'].map(r=>r),{o:W});
+ IC.tap=M('tap',['..oooo..','.o....o.','o..oo..o','o.oooo.o','o.oooo.o','o..oo..o','.o....o.','..oooo..'],{o:W});
+ IC.gemW=img('gemW',9,8,x=>gemAt(x,0,0,0,'white'));
+ IC.spark=M('spk',['....o....','....Y....','...YYY...','oYYYWYYYo','...YYY...','....Y....','....o....'],{o:'#B8860B',Y:'#F6C430',W:W});
+ IC.retry=M('rty',['...oooo...','.oo....o..','o.......o.','o.........','o.........','o......ooo','.o......oo','..oooo.o.o'],{o:'#1A1A1A'});
+ IC.bag=M('bag',['...oooo...','..o....o..','oooooooooo','oBBBBBBBBo','oBBBBBBBBo','oBBBBBBBBo','oBBBBBBBBo','.oooooooo.'],{o:'#111',B:'#C0874A'});
+ IC.inf=M('inf',['.oo...oo.','o..o.o..o','o...o...o','o..o.o..o','.oo...oo.'],{o:W});
+ IC.eraser=M('ers',['....oooo','...oPPwo','..oPPwwo','.oPPwwo.','oPPwwo..','oooooo..'],{o:'#111',P:'#F28BA8',w:'#F4F4F4'});
+ const arrowN=n=>img('arr'+n,13,7,x=>{R(x,0,3,7,1,W);line(x,4,0,7,3,W);line(x,4,6,7,3,W);digit(x,9,1,n,W,null);});
+ KIC.hold=IC.bag;KIC.next=arrowN(1);KIC.span=arrowN(5);KIC.perm=IC.inf;
+ // 아이템 아이콘 (16×16)
+ ITEM_IC.pick=img('pick',16,16,x=>{for(let j=-7;j<=7;j++)for(let i=-7;i<=7;i++)if(Math.abs(i)+Math.abs(j)===7)R(x,8+i,8+j,1,1,W);R(x,7,4,3,3,PF[1]);R(x,4,8,3,3,PF[2]);R(x,10,8,3,3,PF[4]);});
+ ITEM_IC.peek=img('peek',16,16,x=>{dfill(x,5,10,5,6);map(x,7,1,['..ooooo..','.oWWWWWo.','oWWoooWWo','oWWoooWWo','.oWWWWWo.','..ooooo..'],{o:'#111',W:W});});
+ ITEM_IC.row=img('row',16,16,x=>{R(x,1,1,14,14,'#111');R(x,2,2,12,12,'#3A3A50');R(x,2,6,12,4,'#2F6FE0');R(x,2,6,12,1,'#86B4FF');for(let i=5;i<14;i+=4){R(x,i,2,1,12,'#111');}});
+ ITEM_IC.area=img('area',16,16,x=>{for(let i=0;i<16;i+=3){R(x,i,0,2,1,W);R(x,i,15,2,1,W);R(x,0,i,1,2,W);R(x,15,i,1,2,W);}gemAt(x,4,4,3,'full');});
+ ITEM_IC.freeov=img('free',16,16,x=>{dfill(x,5,9,5,1);dfill(x,10,9,5,2);dfill(x,8,9,2,3,PF[3]);map(x,10,0,['.oooo.','oGGGGo','oGWGWo','oGGWGo','.oooo.'],{o:'#111',G:'#2FA552',W:W});});
+ ITEM_IC.value=img('val',16,16,x=>{gemAt(x,1,6,3,'full');coin(x,9,1);R(x,11,3,2,1,'#7A5A00');R(x,11,2,1,3,'#7A5A00');});
+ ITEM_IC.bonus=img('bon',16,16,x=>{gemAt(x,0,1,4,'full');dfill(x,11,11,4,'#9A9AAE','#111');R(x,12,1,1,5,'#2FA552');R(x,10,3,5,1,'#2FA552');});
+ ITEM_IC.hand4=img('h4',16,16,x=>{[1,2,4,6].forEach((c,k)=>dfill(x,2+k*4,8,2,c));});
+ ITEM_IC.lucky=img('luck',16,16,x=>{const G='#2FA552',L='#86E39C';for(const [a,b] of [[4,4],[10,4],[4,10],[10,10]]){R(x,a-2,b-1,5,3,G);R(x,a-1,b-2,3,5,G);R(x,a-1,b-1,1,1,L);}R(x,7,7,2,2,G);line(x,9,10,14,15,G);});
+ ITEM_IC.small=img('sml',16,16,x=>{for(let i=0;i<16;i+=3){R(x,i,0,2,1,W);R(x,i,15,2,1,W);R(x,0,i,1,2,W);R(x,15,i,1,2,W);}R(x,5,5,6,6,'#9A9AAE');R(x,5,5,6,1,W);line(x,2,2,4,4,W);line(x,13,2,11,4,W);line(x,2,13,4,11,W);line(x,13,13,11,11,W);});
+ ITEM_IC.double=img('dbl',16,16,x=>{gemAt(x,0,1,5,'full');gemAt(x,6,7,5,'full');});
+ ITEM_IC.probe=img('prb',16,16,x=>{map(x,0,0,['..ooooo...','.o.....o..','o.......o.','o.......o.','o.......o.','o.......o.','o.......o.','.o.....o..','..ooooo...'],{o:W});gemAt(x,1,1,1,'full');line(x,8,8,14,14,W);line(x,9,8,15,14,W);});
+ // 보석·타일 그림 바꾸기
+ gemSvg=(c,sz,filled)=>`<img class="px" src="${gemURL(c,filled===false?'empty':'full')}" width="${sz}" height="${Math.round(sz*8/9)}" alt="">`;
+ miniTile=(c,v,sz)=>`<img class="px" src="${tileURL(c,[v.u,v.d,v.l,v.r])}" width="${sz}" height="${sz}" alt="">`;
+ SK.tileImg=(c,sz)=>`<img class="px" src="${tileURL(c,null)}" width="${sz}" height="${sz}" alt="">`;
+ // 가이드 그림
+ SK.guide=function(){
+  const C=26,board=(w,h,fn)=>{const k='gd'+w+h+fn.name;return url(k,x=>{for(let j=0;j<h*C;j++)for(let i=0;i<w*C;i++)R(x,i,j,1,1,((i>>1)+(j>>1))%2?'#2A1640':'#341C4E');for(let a=0;a<w;a++)for(let b=0;b<h;b++){R(x,a*C,b*C,C,1,'rgba(0,0,0,0.55)');R(x,a*C,b*C,1,C,'rgba(0,0,0,0.55)');}fn(x);},w*C,h*C);};
+  const T=(x,ox,oy,c,v)=>{const sp=SK.h;sp.shadow(x,ox,oy);sp.tileDraw(x,ox,oy,c);if(v){const ink=INK[c],out=ink==='#FFFFFF'?'#111111':'#FFF6C8';sp.numAt(x,ox+13,oy+5,v[0],ink,out);sp.numAt(x,ox+13,oy+20,v[1],ink,out);sp.numAt(x,ox+5,oy+13,v[2],ink,out);sp.numAt(x,ox+20,oy+13,v[3],ink,out);}};
+  const ring=(x,cx,cy,col)=>{for(let j=-6;j<=6;j++)for(let i=-6;i<=6;i++){const d=Math.abs(i)+Math.abs(j);if(d===6)R(x,cx+i,cy+j,1,1,col);}};
+  const A=board(5,5,function L(x){R(x,0,0,2*C,5*C,'rgba(232,57,47,0.22)');for(const [a,b] of [[2,0],[0,3],[1,4],[4,2]])gemAt(x,a*C+8,b*C+9,1,'full');T(x,2*C,2*C,1,[1,2,2,1]);ring(x,2*C+5,2*C+13,'#F6C430');line(x,2*C+2,2*C+15,C+16,3*C+10,'#F6C430');line(x,2*C+3,2*C+17,C+20,4*C+8,'#F6C430');});
+  const B=board(5,5,function U(x){R(x,0,0,5*C,2*C,'rgba(232,57,47,0.22)');for(const [a,b] of [[2,0],[0,3],[1,4],[4,2]])gemAt(x,a*C+8,b*C+9,1,'full');T(x,2*C,2*C,1,[1,2,2,1]);ring(x,2*C+13,2*C+5,'#F6C430');line(x,2*C+13,2*C-1,2*C+13,C+4,'#F6C430');});
+  const Cc=board(4,1,function Y(x){T(x,0,0,2,[0,0,0,1]);gemAt(x,2*C+8,9,1,'full');gemAt(x,3*C+8,9,2,'full');});
+  const D=board(4,1,function F(x){gemAt(x,8,9,4,'full');R(x,C+6,12,12,2,'#FFFFFF');R(x,C+14,10,2,6,'#FFFFFF');R(x,C+16,11,1,4,'#FFFFFF');T(x,2*C+12,0,4,null);gemAt(x,2*C+20,9,0,'white');});
+  const svgs=document.querySelectorAll('#guide .gB svg, #guide .gCard svg');const srcs=[A,B,Cc,D],ws=[5,5,4,4],hs=[5,5,1,1];
+  svgs.forEach((s,i)=>{s.outerHTML=`<img class="px gImg" src="${srcs[i]}" style="width:100%;aspect-ratio:${ws[i]}/${hs[i]};image-rendering:pixelated;display:block" alt="">`;});
+  const note=document.querySelector('#guide .gNote svg');if(note)note.outerHTML=gemSvg(1,18);
+  document.querySelectorAll('#guide .gMix .sq').forEach((q,i)=>{q.outerHTML=SK.tileImg([1,2,3][i],22);});};
+})();}
 
 // ---------- 구역표 ----------
 const STAGES=[
@@ -507,7 +575,7 @@ function collect(){if(collecting||collected)return;collecting=true;draw();const 
  const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin));setTimeout(openShop,1200);},420);return;}
   const g=list[i++],v=(price(g.c)+(perm.value&&isMix(g.c)?1:0))*(fx.double?2:1);earned+=v;
   const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
-  g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
+  g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=SK?gemSvg(g.c,w):`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(0.35)`;f.style.opacity='0.9';}));
   setTimeout(()=>{f.remove();money+=v;draw();const n=$('moneyNum');n.classList.add('bump');},520);setTimeout(step,260);};
  step();}
@@ -530,7 +598,7 @@ $('reroll').onclick=()=>{const cost=shop.rr+1;if(money<cost||shop.bought!==null)
 $('shopGo').onclick=()=>{$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone();};
 
 // ---------- 가방 사용 ----------
-function picker(title,colors,cb){$('pickTitle').innerHTML=title;$('pickList').innerHTML=colors.map(c=>`<button class="pickC" data-pc="${c}" aria-label="${NAME[c]}"><svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.03)}" fill="${FILL[c]}"/></svg></button>`).join('');
+function picker(title,colors,cb){$('pickTitle').innerHTML=title;$('pickList').innerHTML=colors.map(c=>`<button class="pickC" data-pc="${c}" aria-label="${NAME[c]}">${SK?SK.tileImg(c,72):`<svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.03)}" fill="${FILL[c]}"/></svg>`}</button>`).join('');
  document.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{$('pickPop').classList.remove('show');cb(+b.dataset.pc);});$('pickPop').classList.add('show');}
 function useBag(i){const it=bag[i];if(phase!=='play')return;armed=null;
  if(it.id==='pick')picker(ITEM_IC.pick,poolList().length?ALL.filter(c=>poolList().includes(c)):ALL,c=>{hand[hs]=c;bag.splice(i,1);draw();});
@@ -562,12 +630,12 @@ $('bCollect').onclick=collect;$('retry').onclick=newGame;
 
 // ---------- 팝업, 가이드 ----------
 $('mixBtn').innerHTML=IC.mix;$('mixHead').innerHTML=IC.mix;$('erIc').innerHTML=IC.eraser;if(SK)$('er').innerHTML=SK.eraserImg();$('bRef').innerHTML=IC.refresh+`<span class="st"><small>−1</small>${IC.tile}</span>`;$('bCollect').innerHTML=sv(G24(12,12.5,20,'#E0312B'))+IC.next+IC.coin;$('shopGo').innerHTML=IC.play;$('retry').innerHTML=IC.retry;document.querySelectorAll('.popClose').forEach(b=>b.innerHTML=IC.close);
-const sq=c=>`<span class="sq" style="background:${FILL[c]}"></span>`;
+const sq=c=>SK?SK.tileImg(c,34):`<span class="sq" style="background:${FILL[c]}"></span>`;
 $('mix').innerHTML=[[1,2,3],[2,4,6],[1,4,5]].map(([a,b,r])=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`).join('');
 document.querySelectorAll('.pop').forEach(p=>p.addEventListener('click',e=>{if(e.target===p||e.target.closest('.popClose'))p.classList.remove('show');}));
 $('mixBtn').onclick=()=>$('mixPop').classList.add('show');
 function guide(on){$('guide').classList.toggle('show',on);}
-$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms2_guide','1')}catch(e){}};
+if(SK)SK.guide();$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms2_guide','1')}catch(e){}};
 try{if(!localStorage.getItem('ms2_guide'))guide(true);}catch(e){guide(true);}
 
 // ---------- 시험 도구 (?dev) ----------
