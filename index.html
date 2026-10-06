@@ -100,6 +100,8 @@ body.dev #boardWrap{height:min(92vw,480px);flex:none}
 .popNote{font-size:15px;color:var(--text-secondary);margin:10px 0}
 #mixClose{font-size:16px;padding:8px 28px}
 
+.supply{display:inline-block;background:#2E9E4F;color:#FFFFFF;font-size:13px;font-weight:700;padding:1px 7px;border-radius:6px;vertical-align:2px}
+
 </style>
 </head>
 <body>
@@ -189,12 +191,15 @@ let collected=false,collecting=false,selCell=null,REF=true,G=7,START=10,conf=new
 try{best=+(localStorage.getItem('sm_best')||0)}catch(e){best=0}
 let rec=[],mv=[],hand=[0,0,0],hs=0,zone=1,tiles=20,zoneStart=20,score=0,scoreStart=0,gems=[],cell={},reveal=false,phase='play',burned=0,flash=[],vanish=[],hist=[],stats={placed:0,found:0,gain:0},order=[],drag=null,target=null;
 const $=id=>document.getElementById(id),ri=n=>Math.floor(Math.random()*n),K=(x,y)=>x+','+y;
-function sched(z){return {gain:2,cap:Infinity,mixMin:z<=12?0:z<=15?1/3:z<=20?1/2:2/3,pw:z<=10?1:z<=15?1.5:2};}
-function spec(z){let k=1,n=1,nc=z===1?1:0;for(let st=2;st<=z;st++){if(k<6&&st%2===1){k++;nc=st===z?ORDER[k-1]:0;}else{n=Math.min(n+1,10);if(st===z)nc=0;}}return {colors:ORDER.slice(0,k),n,nc};}
-const pal=()=>spec(zone).colors;
+function sched(z){return {gain:spec(z).rest?5:3,cap:Infinity,mixMin:z<=12?0:z<=15?1/3:z<=20?1/2:2/3,pw:z<=10?1:z<=15?1.5:2};}
+const STAGES=[{"c":[1],"n":1,"nc":1,"m":0,"rest":false,"tag":"새 색"},{"c":[1],"n":2,"nc":0,"m":0,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,2],"n":2,"nc":2,"m":0,"rest":false,"tag":"새 색"},{"c":[1,2],"n":3,"nc":0,"m":0,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,2],"n":3,"nc":0,"m":0,"rest":false,"tag":"같은 수준, 다른 판"},{"c":[1,2,4],"n":3,"nc":4,"m":0,"rest":false,"tag":"새 색"},{"c":[1,2,4],"n":4,"nc":0,"m":0,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,2,4],"n":3,"nc":0,"m":0,"rest":true,"tag":"보급 구역"},{"c":[1,2,3],"n":3,"nc":3,"m":0,"rest":false,"tag":"새 색"},{"c":[1,2,4,3],"n":4,"nc":0,"m":1,"rest":false,"tag":"색이 하나 늘어남"},{"c":[1,2,4,3],"n":4,"nc":0,"m":1,"rest":false,"tag":"같은 수준, 다른 판"},{"c":[1,2,4,3],"n":5,"nc":0,"m":1,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,2,4,3],"n":4,"nc":0,"m":1,"rest":true,"tag":"보급 구역"},{"c":[2,4,6],"n":4,"nc":6,"m":0,"rest":false,"tag":"새 색"},{"c":[1,2,4,6],"n":5,"nc":0,"m":1,"rest":false,"tag":"색이 하나 늘어남"},{"c":[1,3,4,6],"n":5,"nc":0,"m":2,"rest":false,"tag":"섞은 색 보석이 늘어남"},{"c":[1,2,4,6],"n":4,"nc":0,"m":1,"rest":true,"tag":"보급 구역"},{"c":[1,4,5],"n":4,"nc":5,"m":0,"rest":false,"tag":"새 색"},{"c":[1,2,4,5],"n":5,"nc":0,"m":1,"rest":false,"tag":"색이 하나 늘어남"},{"c":[2,3,4,5],"n":6,"nc":0,"m":2,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,3,6,5],"n":6,"nc":0,"m":2,"rest":false,"tag":"섞은 색 보석이 늘어남"},{"c":[1,2,4,3],"n":5,"nc":0,"m":1,"rest":true,"tag":"보급 구역"},{"c":[2,3,6,5],"n":7,"nc":0,"m":2,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,3,6,5],"n":7,"nc":0,"m":3,"rest":false,"tag":"섞은 색 보석이 늘어남"},{"c":[2,4,6,3],"n":8,"nc":0,"m":3,"rest":false,"tag":"보석이 하나 늘어남"},{"c":[1,2,4,5],"n":6,"nc":0,"m":2,"rest":true,"tag":"보급 구역"}];
+function spec(z){if(z<=STAGES.length){const t=STAGES[z-1];return {colors:t.c,n:t.n,nc:t.nc,m:t.m,rest:t.rest,tag:t.tag};}const k=z-STAGES.length,cy=Math.floor((k-1)/4),pos=(k-1)%4,n=Math.min(10,6+cy+[1,1,2,0][pos]),m=Math.min(n-1,2+cy+[0,1,1,0][pos]);return {colors:[1,2,4,3,6,5],n,nc:0,m,rest:pos===3,tag:pos===3?"보급 구역":["보석이 하나 늘어남","섞은 색 보석이 늘어남","보석이 하나 늘어남"][pos]};}
+let ZC=null,CAPC=4;try{const q=new URLSearchParams(location.search);if(q.get('cap'))CAPC=+q.get('cap');}catch(e){}
+const pal=()=>ZC||spec(zone).colors;
+function pickColors(sp){if(!CAPC||sp.colors.length<=CAPC)return sp.colors;const keep=sp.nc?[sp.nc]:[];const rest=sp.colors.filter(c=>!keep.includes(c));while(keep.length<CAPC)keep.push(rest.splice(ri(rest.length),1)[0]);return ORDER.filter(c=>keep.includes(c));}
 function place(n,nc){const s=new Set(),g=[],P=pal(),MX=P.filter(c=>!PRIM.includes(c));n=Math.min(n,G*G);
  while(g.length<n){const x=ri(G),y=ri(G);if(s.has(K(x,y)))continue;s.add(K(x,y));g.push({x,y,c:(g.length===0&&nc)?nc:P[ri(P.length)],f:false,lock:g.length===0&&!!nc});}
- if(MX.length){const need=Math.ceil(n*sched(zone).mixMin);let cnt=g.filter(q=>MX.includes(q.c)).length;const cand=g.filter(q=>!q.lock&&PRIM.includes(q.c));while(cnt<need&&cand.length){const q=cand.splice(ri(cand.length),1)[0];q.c=MX[ri(MX.length)];cnt++;}}
+ if(MX.length){const need=spec(zone).m||0;let cnt=g.filter(q=>MX.includes(q.c)).length;const cand=g.filter(q=>!q.lock&&PRIM.includes(q.c));while(cnt<need&&cand.length){const q=cand.splice(ri(cand.length),1)[0];q.c=MX[ri(MX.length)];cnt++;}}
  return g;}
 const live=()=>gems.filter(g=>!g.f),done=()=>gems.filter(g=>g.f);
 function clue(x,y,t){const L=live().filter(g=>g.c===t);return{l:L.filter(g=>g.x<x).length,r:L.filter(g=>g.x>x).length,u:L.filter(g=>g.y<y).length,d:L.filter(g=>g.y>y).length};}
@@ -261,7 +266,7 @@ function draw(){
  $('found').innerHTML=`<div style="margin-bottom:8px">${done().length}개 / ${gems.length}개</div>`+(done().length?ALL.filter(c=>fc[c]).map(c=>`<div class="fr"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fc[c]}개</div>`).join(''):'<div class="lab">아직 없음</div>');
  $('rec').innerHTML=rec.length?`<table style="border-collapse:collapse;width:100%"><tr style="color:var(--text-secondary)"><td>구역</td><td>놓은</td><td>남은</td><td>찾은 보석</td><td>점수</td></tr>`+rec.map(r=>`<tr><td>${r.z}</td><td>${r.placed}</td><td>${r.left}</td><td>${r.fail?'패배':r.n}</td><td>${r.score==null?'-':r.score}</td></tr>`).join('')+`</table>`:'<div class="lab">구역을 끝내면 여기에 쌓입니다</div>';
  const S=sched(zone);
- $('stat').innerHTML=`<div class="big"><span>${zone}구역</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b id="scoreNum">${score}</b></span><span class="muted">최고 ${best}</span></div><div class="gemRow"><span class="gLab">보석</span>${[...done(),...live()].map(g=>`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.92,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.92,'none','#888780',0.06)}</svg>`).join('')}<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span></div>`;
+ $('stat').innerHTML=`<div class="big"><span>${zone}구역${spec(zone).rest?' <span class="supply">보급</span>':''}</span><span>남은 타일 <b>${tiles}</b></span><span>점수 <b id="scoreNum">${score}</b></span><span class="muted">최고 ${best}</span></div><div class="gemRow"><span class="gLab">보석</span>${[...done(),...live()].map(g=>`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.92,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.92,'none','#888780',0.06)}</svg>`).join('')}<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span></div>`;
  $('sch').textContent=`이번 구역 값: 보석 ${spec(zone).n}개 · 섞은 색 보석 최소 ${Math.round(S.mixMin*100)}% · 성분 색 가중치 ${S.pw}배 · 보석 찾으면 타일 +${S.gain}개`;
  $('log').textContent=`이번 구역: 놓은 횟수 ${stats.placed}, 찾은 보석 ${stats.found}, 찾아서 받은 타일 ${stats.gain}`+(reveal||phase!=='play'?` · 보석 구성: ${ALL.filter(c=>gems.some(g=>g.c===c)).map(c=>NAME[c]+' '+gems.filter(g=>g.c===c).length).join(', ')}`:'');
  $('done').innerHTML=pal().map(c=>{const fin=conf.has(c);return `<div class="fr" style="opacity:${fin?0.45:1}"><span class="dot" style="background:${FILL[c]}"></span>${NAME[c]} ${fin?'<b style="font-weight:500">완료</b>':''}</div>`;}).join('');
@@ -270,10 +275,10 @@ function draw(){
 function msg(t,d){$('msg').textContent=t;$('msg').style.color=d?'var(--text-danger)':'var(--text-primary)';}
 function snap(){return {cell:{...cell},f:gems.map(g=>g.f),tiles,score,phase,burned,stats:{...stats},order:[...order],hand:[...hand],hs,conf:[...conf],mv:[...mv],rec:JSON.parse(JSON.stringify(rec))};}
 function setBest(){if(score>best){best=score;try{localStorage.setItem('sm_best',String(best))}catch(e){}}}
-function startZone(newLayout){collected=false;collecting=false;selCell=null;const sp=spec(zone);if(newLayout)gems=place(sp.n,sp.nc);else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
+function startZone(newLayout){collected=false;collecting=false;selCell=null;const sp=spec(zone);if(newLayout){ZC=null;ZC=pickColors(sp);gems=place(sp.n,sp.nc);}else gems.forEach(g=>g.f=false);cell={};conf=new Set();mv=[];order=[];flash=[];vanish=[];tiles=zoneStart;score=scoreStart;phase='play';burned=0;reveal=false;hist=[];stats={placed:0,found:0,gain:0};
  hand=Array.from({length:HN},draw1);hs=0;
  if(tiles<=0){phase='lost';setBest();msg(`남은 타일이 없어 ${zone}구역을 시작할 수 없습니다. 최종 점수 ${score}점 · 최고 ${best}점.`,true);draw();return;}
- msg(`${zone}구역 · 숨은 보석 ${gems.length}개.`+(sp.nc&&zone>1?` 새 색: ${NAME[sp.nc]} 보석이 이번 구역에 적어도 하나 있습니다.`:zone>1?'':' 타일을 끌어 칸에 놓으세요. 숫자는 그쪽에 같은 색 보석이 몇 개 있는지 알려 줍니다.')+` 보석을 찾으면 타일 ${sched(zone).gain}개를 받습니다.`);draw();}
+ msg((sp.rest?'보급 구역! 이번 구역은 보석을 찾으면 타일 5개. ':'')+`${zone}구역 · 숨은 보석 ${gems.length}개.`+(sp.nc&&zone>1?` 새 색: ${NAME[sp.nc]} 보석이 이번 구역에 적어도 하나 있습니다.`:zone>1?'':' 타일을 끌어 칸에 놓으세요. 숫자는 그쪽에 같은 색 보석이 몇 개 있는지 알려 줍니다.')+` 보석을 찾으면 타일 ${sched(zone).gain}개를 받습니다.`);draw();}
 function readVals(){const v=(id,lo,hi,d)=>{const n=parseInt($(id).value,10);return isNaN(n)?d:Math.max(lo,Math.min(hi,n));};G=v('iG',5,9,7);START=v('iS',1,99,10);}
 function jump(z){readVals();rec=[];zone=z;zoneStart=START;scoreStart=0;startZone(true);}
 const zbs=$('zbs');for(let z=1;z<=21;z++){const b=document.createElement('button');b.className='zb';b.dataset.z=z;b.textContent=z+'구역';b.onclick=()=>jump(z);zbs.appendChild(b);}
@@ -323,8 +328,9 @@ $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.
 function guide(on){$('guide').classList.toggle('show',on);}
 $('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms_guide','1')}catch(e){}};
 try{if(!localStorage.getItem('ms_guide'))guide(true);}catch(e){guide(true);}
+function nextInfo(){const t=spec(zone+1);return '다음: '+(t.rest?'보급 구역':t.nc?'새 색 '+NAME[t.nc]:t.tag);}
 function collect(){if(collecting||collected)return;collecting=true;draw();const list=done().filter(g=>!g.col);const root=$('root'),rr=root.getBoundingClientRect();let i=0;
- const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;msg(`보석 ${list.length}개를 모았습니다. +${list.length*10}점. 남은 타일 ${tiles}개로 다음 구역에 갑니다.`);draw();},420);return;}
+ const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;msg(`보석 ${list.length}개를 모았습니다. +${list.length*10}점. 남은 타일 ${tiles}개로 다음 구역에 갑니다. `+nextInfo());draw();},420);return;}
   const g=list[i++],fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('scoreNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
   g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.width=w+'px';f.style.height=w+'px';f.style.left=(sx-w/2)+'px';f.style.top=(sy-w/2)+'px';f.innerHTML=`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(0.35)`;f.style.opacity='0.9';}));
