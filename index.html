@@ -374,6 +374,15 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 #shopTiles.bump b{display:inline-block;animation:bump .4s ease-out}
 #sndBtn{width:42px;height:38px;padding:0;display:flex;align-items:center;justify-content:center}#sndBtn .ic{width:24px;height:24px}
 .lbUp{display:block;font-size:12px;color:#E8392F;font-weight:700;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}.tileSlot>div.st{flex-wrap:wrap}
+/* 진단 첫 묶음 */
+#stat b.low{color:#E0312B;animation:blink2 .8s steps(2) infinite}
+@keyframes blink2{50%{opacity:0.35}}
+#handRow.low{background:rgba(224,49,43,0.14);border-radius:10px}
+.sk #handRow.low{background:rgba(224,49,43,0.25);border-radius:0}
+.lbTut{font-size:12px;font-weight:700;color:#F6C430;background:#1F1E1C;padding:2px 6px;border-radius:6px;margin-right:4px;font-family:system-ui,"Malgun Gothic",sans-serif}
+.sk .lbTut{border-radius:0}
+#coachBub{word-break:keep-all}
+#bRef:disabled{opacity:0.35}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -656,6 +665,7 @@ const SFX=(()=>{let ctx=null,muted=false;try{muted=localStorage.getItem('ms2_mut
   buy(){tone(784,0.07,'square',0.1);tone(1047,0.07,'square',0.1,0.07);tone(1568,0.14,'square',0.1,0.14);},
   refresh(){[700,500,800].forEach((f,i)=>tone(f,0.04,'square',0.07,i*0.04));},
   ping(){tone(1200,0.05,'triangle',0.1);tone(1600,0.1,'triangle',0.1,0.06);},
+  warn(){tone(220,0.09,'square',0.1);tone(220,0.12,'square',0.1,0.13);},
   lose(){[523,440,349,262].forEach((f,i)=>tone(f,0.18,'square',0.1,i*0.16));},
   tap(){tone(880,0.025,'square',0.05);},
   get muted(){return muted;},
@@ -670,7 +680,8 @@ const STAGES=[
  {c:[6],n:2,nc:6,tag:'새 색 초록 · 초록 보석만'},{c:[1,2,4,6],n:5,m:1,tag:'색이 하나 늘어남'},{c:[1,3,4,6],n:5,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,6],n:4,m:1,tag:'쉬어 가는 스테이지'},
  {c:[5],n:2,nc:5,tag:'새 색 보라 · 보라 보석만'},{c:[1,2,4,5],n:5,m:1,tag:'색이 하나 늘어남'},{c:[3,6,5],n:5,tag:'섞은 색 보석만'},{c:[1,3,6,5],n:6,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,3],n:5,m:1,tag:'쉬어 가는 스테이지'},
  {c:[2,3,6,5],n:7,m:2,tag:'보석이 하나 늘어남'},{c:[3,6,5],n:6,tag:'섞은 색 보석만'},{c:[2,4,6,3],n:8,m:3,tag:'보석이 늘어남'},{c:[1,2,4,5],n:6,m:2,tag:'쉬어 가는 스테이지'}];
-function spec(z){if(z<=STAGES.length){const t=STAGES[z-1];return {c:t.c,n:t.n,nc:t.nc||0,m:t.m||0,tag:t.tag};}
+const specCache={};function spec(z){if(specCache[z])return specCache[z];const r=spec0(z);specCache[z]=r;return r;}
+function spec0(z){if(z<=STAGES.length){const t=STAGES[z-1];return {c:t.c,n:t.n,nc:t.nc||0,m:t.m||0,tag:t.tag};}
  const k=z-STAGES.length,cy=Math.floor((k-1)/4),pos=(k-1)%4,n=Math.min(10,6+cy+[1,1,2,0][pos]);
  if(pos===1&&cy%2===0)return {c:[3,6,5],n:Math.min(9,n),nc:0,m:0,tag:'섞은 색 보석만'};
  const pool=[...ALL];const c=[];while(c.length<4)c.push(pool.splice(ri(pool.length),1)[0]);
@@ -680,24 +691,24 @@ const pw=z=>z<=10?1:z<=15?1.5:2;
 // ---------- 아이템 ----------
 const ITEMS={
  pick:{nm:'색 골라 받기',ds:'손의 타일 한 장을 원하는 색으로 바꾼다',p:1,k:'hold'},
- peek:{nm:'숫자 다시 보기',ds:'다음 스테이지에서 이 칩을 누른 뒤 판의 타일을 누르면, 그 칸에 다른 색 타일을 놓았을 때의 숫자를 판 위에서 볼 수 있다. 3칸까지. 한 번 본 칸은 다시 눌러 몇 번이든 본다',p:2,k:'next'},
- row:{nm:'줄 탐지',ds:'다음 스테이지 시작 때 가로 한 줄을 골라 그 줄의 보석 수를 본다',p:3,k:'next'},
- area:{nm:'색 탐지',ds:'한 색을 골라 그 색 보석 하나가 있는 3×3 범위를 표시한다',p:4,k:'hold'},
- freeov:{nm:'겹치기 공짜',ds:'다음 스테이지에서는 타일 위에 겹쳐 놓아도 남은 타일이 줄지 않는다',p:3,k:'next'},
+ peek:{nm:'숫자 다시 보기',ds:'판의 타일을 눌러 다른 색 타일이었을 때의 숫자를 본다. 3칸까지',p:2,k:'next'},
+ row:{nm:'줄 탐지',ds:'칸을 눌러 그 가로줄에 보석이 몇 개 있는지 본다(색과 상관없이, 1번)',p:3,k:'hold'},
+ area:{nm:'색 탐지',ds:'한 색을 골라 그 색 보석 중 하나가 있는 3×3 범위를 표시한다(어느 보석인지는 무작위)',p:4,k:'hold'},
+ freeov:{nm:'겹치기 공짜',ds:'타일 위에 겹쳐 놓아도 남은 타일이 줄지 않는다',p:3,k:'next'},
  value:{nm:'섞은 보석 값 +1',ds:'섞은 색 보석을 팔 때 1원씩 더 받는다',p:5,k:'perm'},
  bonus:{nm:'찾으면 타일 +1',ds:'앞으로 5스테이지 동안 보석을 찾으면 타일을 1개 더 받는다',p:8,k:'span'},
  hand4:{nm:'네 번째 손',ds:'손에 드는 타일이 4장이 된다',p:10,k:'perm'},
- lucky:{nm:'행운의 손',ds:'다음 스테이지 동안 남은 보석 색 타일이 두 배 자주 나온다',p:2,k:'next'},
- small:{nm:'좁은 판',ds:'다음 스테이지 판이 6×6이 된다',p:7,k:'next'},
- double:{nm:'보석 두 배 스테이지',ds:'다음 스테이지 보석이 2개 더 나오고, 그 스테이지 보석은 두 배 값에 판다',p:1,k:'next'},
+ lucky:{nm:'행운의 손',ds:'남은 보석 색 타일이 두 배 자주 나온다',p:2,k:'next'},
+ small:{nm:'좁은 판',ds:'판이 6×6이 된다',p:7,k:'next'},
+ double:{nm:'보석 두 배 스테이지',ds:'보석이 2개 더 나오고, 보석의 기본값이 두 배가 된다',p:1,k:'next'},
  probe:{nm:'탐지기 3회',ds:'칸을 눌러 그 칸에 보석이 있는지 본다(3번)',p:5,k:'hold'}};
 for(const k in ITEMS)ITEMS[k].p0=ITEMS[k].p;for(const k in CFG.items)if(ITEMS[k])ITEMS[k].p=CFG.items[k];
 const KTAG={hold:'가방',next:'다음 스테이지',perm:'계속',span:'5스테이지'};
 
 // ---------- 상태 ----------
 let nudge=false;
-let zoneStart=null,peeked={},peekPick=null,peekView=null,badCell=null,G=7,zone=1,tiles=10,money=0,best=0,gems=[],cell={},hand=[0,0,0],hs=0,HN=3,phase='play',drag=null,target=null,selCell=null,reveal=false,armed=null;
-let bag=[],perm={},spanLeft=0,nextFx={},fx={},marks={},rowMarks={},areaMark=null,mode=null,collected=false,collecting=false,shop=null,flash=[],vanish=[];
+let tainted=false,firstSeen={},areaMarks=[],zoneStart=null,peeked={},peekPick=null,peekView=null,badCell=null,G=7,zone=1,tiles=10,money=0,best=0,gems=[],cell={},hand=[0,0,0],hs=0,HN=3,phase='play',drag=null,target=null,selCell=null,reveal=false,armed=null;
+let bag=[],perm={},spanLeft=0,nextFx={},fx={},marks={},rowMarks={},areaMarks0=null,mode=null,collected=false,collecting=false,shop=null,flash=[],vanish=[];
 try{best=+(localStorage.getItem('ms2_best')||0)}catch(e){}
 const live=()=>gems.filter(g=>!g.f),done=()=>gems.filter(g=>g.f);
 function clue(x,y,t){const L=live().filter(g=>g.c===t);return{l:L.filter(g=>g.x<x).length,r:L.filter(g=>g.x>x).length,u:L.filter(g=>g.y<y).length,d:L.filter(g=>g.y>y).length};}
@@ -718,7 +729,7 @@ function draw(){
  const hintSrc=tutMarks.length?[]:peekView?[[peekView.k,peekView.c]]:Object.entries(cell).filter(([k,t])=>t===vc);
  let s=SK?SK.board(G):`<rect x="0" y="0" width="${G}" height="${G}" rx="0.08" fill="#141414"/>`;
  if(!SK)for(let i=1;i<G;i++)s+=`<line x1="${i}" y1="0" x2="${i}" y2="${G}" stroke="#3A3A3A" stroke-width="0.02"/><line x1="0" y1="${i}" x2="${G}" y2="${i}" stroke="#3A3A3A" stroke-width="0.02"/>`;
- if(areaMark)s+=`<rect x="${areaMark.x}" y="${areaMark.y}" width="3" height="3" fill="${FILL[areaMark.c]}" opacity="0.22" stroke="${FILL[areaMark.c]}" stroke-width="0.05" stroke-dasharray="0.15 0.1"/>`;
+ for(const am of areaMarks)s+=`<rect x="${am.x}" y="${am.y}" width="3" height="3" fill="${FILL[am.c]}" opacity="0.22" stroke="${FILL[am.c]}" stroke-width="0.05" stroke-dasharray="0.15 0.1"/>`;
  let dim='';for(const [k,t] of hintSrc){const [x,y]=k.split(',').map(Number),c=clue(x,y,t);
   if(c.l===0)dim+=`<rect x="0" y="0" width="${x}" height="${G}"/>`;if(c.r===0)dim+=`<rect x="${x+1}" y="0" width="${G-x-1}" height="${G}"/>`;
   if(c.u===0)dim+=`<rect x="0" y="0" width="${G}" height="${y}"/>`;if(c.d===0)dim+=`<rect x="0" y="${y+1}" width="${G}" height="${G-y-1}"/>`;}
@@ -745,22 +756,22 @@ function draw(){
  if(typeof TUT!=='undefined')TUT.place();
  $('root').classList.toggle('nudge',nudge&&phase==='play'&&zone===1);
  // 위 정보
- $('stat').innerHTML=`<span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.tile}<b>${tiles}</b></span><span class="st">${IC.coin}<b id="moneyNum">${money}</b></span><span class="st muted">${IC.best}${best}</span>`;
+ $('stat').innerHTML=`${TUT.on?'<span class="lbTut">연습</span>':''}<span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.tile}<b id="tileNum" class="${tiles<=3?'low':''}">${tiles}</b></span><span class="st">${IC.coin}<b id="moneyNum">${money}</b></span><span class="st muted">${IC.best}${best}</span>`;
  const order=[...gems].sort((a,b)=>ALL.indexOf(a.c)-ALL.indexOf(b.c)||(b.f-a.f));
  $('gemRow').innerHTML=order.map(g=>SK?SK.gemImg(g.c,g.f):`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.9,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.88,'none',FILL[g.c],0.08)}</svg>`).join('')+`<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span>`+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#gemRow .tutQuit').forEach(b=>b.onclick=tutQuit);
  // 손
  for(let i=0;i<4;i++){const b=$('h'+i),c=hand[i];b.style.display=phase==='play'&&i<HN?'flex':'none';b.innerHTML=c?(SK?SK.handImg(c):`<svg viewBox="0 0 1 1" class="hdia"><polygon points="0.5,0.03 0.97,0.5 0.5,0.97 0.03,0.5" fill="${FILL[c]}"/></svg>`):'';b.classList.toggle('on',hs===i&&!(selCell&&cell[selCell]));b.classList.toggle('armed',armed===i);b.style.opacity=drag&&drag.i===i?0.35:1;}
  $('er').style.display=phase==='play'?'flex':'none';$('er').style.opacity=drag&&drag.er?0.35:1;$('er').classList.toggle('armed',armed==='er');
- $('bRef').style.display=phase==='play'?'':'none';
+ $('bRef').style.display=phase==='play'?'':'none';{const cs=TUT.step();$('bRef').disabled=!(cs&&cs.ref)&&(tiles<=CFG.refCost||poolList().length<=1);}$('handRow').classList.toggle('low',phase==='play'&&tiles<=3);
  $('bCollect').style.display=phase==='clear'&&!collected?'':'none';$('bCollect').disabled=collecting;
  // 가방과 효과
  const chip=(attr,id,badge,cls)=>`<button class="chip${cls||''}" ${attr} aria-label="${ITEMS[id].nm}">${ITEM_IC[id]}<span class="cl">${SHORT[id]}</span>${badge!=null&&badge!==''?`<i>${badge}</i>`:''}</button>`;
- let bg=(fx.peek?chip('id="peekChip"','peek',fx.peek,mode==='peek'?' on':''):'')+bag.map((it,i)=>chip(`data-bag="${i}"`,it.id,it.uses||'',mode==='probe'&&it.id==='probe'?' on':'')).join('');
+ let bg=(fx.peek?chip('id="peekChip"','peek',fx.peek,mode==='peek'?' on':''):'')+bag.map((it,i)=>chip(`data-bag="${i}"`,it.id,it.uses||'',mode===it.id?' on':'')).join('');
  const ef=[];for(const k of ['freeov','lucky','double','small'])if(fx[k])ef.push([k,'']);if(spanLeft)ef.push(['bonus',spanLeft]);if(perm.value)ef.push(['value','']);if(perm.hand4)ef.push(['hand4','']);
  bg+=ef.map(([k,n])=>chip(`data-eff="${k}"`,k,n,' eff')).join('');$('bag').innerHTML=phase==='play'?bg:'';
- document.querySelectorAll('[data-bag]').forEach(b=>b.onclick=()=>{if(phase!=='play')return;itemPop({id:bag[+b.dataset.bag].id,idx:+b.dataset.bag});});
+ document.querySelectorAll('[data-bag]').forEach(b=>longPress(b,()=>{if(phase!=='play')return;tapBag(+b.dataset.bag);},()=>itemPop({id:bag[+b.dataset.bag].id,idx:+b.dataset.bag})));
  document.querySelectorAll('[data-eff]').forEach(b=>b.onclick=()=>itemPop({id:b.dataset.eff}));
- if($('peekChip'))$('peekChip').onclick=()=>{if(phase!=='play')return;if(mode==='peek'){mode=null;draw();return;}itemPop({id:'peek'});};
+ if($('peekChip'))longPress($('peekChip'),()=>{if(phase!=='play')return;if(mode==='peek'){mode=null;draw();return;}if(!firstSeen.peek){firstSeen.peek=1;itemPop({id:'peek'});return;}armed=null;peekPick=null;peekView=null;mode='peek';draw();},()=>itemPop({id:'peek'}));
  {const pb=$('peekBar');if(peekPick&&phase==='play'){const [px,py]=peekPick.split(',').map(Number);const own=cell[peekPick]||0;const cs=ALL.filter(c=>c!==own&&live().some(g=>g.c===c));
   pb.innerHTML=ITEM_IC.peek+(cs.length?cs.map(c=>`<button class="pkC${peekView&&peekView.c===c?' on':''}" data-pk="${c}" aria-label="${NAME[c]}">${SK?SK.tileImg(c,34):`<svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.04)}" fill="${FILL[c]}"/></svg>`}</button>`).join(''):IC.close);pb.style.display='flex';
   pb.querySelectorAll('[data-pk]').forEach(b=>b.onclick=e=>{e.stopPropagation();const c=+b.dataset.pk;peekView=peekView&&peekView.c===c?null:{k:peekPick,c};draw();});}else{pb.style.display='none';pb.innerHTML='';}}
@@ -774,32 +785,33 @@ function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.mi
  while(gems.length<n){const x=ri(G),y=ri(G);if(used.has(K(x,y)))continue;used.add(K(x,y));gems.push({x,y,c:(gems.length===0&&sp.nc)?sp.nc:P[ri(P.length)],f:false,lock:gems.length===0&&!!sp.nc});}
  if(MX.length){let cnt=gems.filter(g=>isMix(g.c)).length;const cand=gems.filter(g=>!g.lock&&PRIM.includes(g.c));while(cnt<sp.m&&cand.length){cand.splice(ri(cand.length),1)[0].c=MX[ri(MX.length)];cnt++;}}
  if(fixedGems)gems=fixedGems.map(g=>({x:g.x,y:g.y,c:g.c,f:false}));
- setTimeout(()=>PLOG.stage(),0);zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
- cell={};marks={};rowMarks={};areaMark=null;selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
- HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
+ setTimeout(()=>PLOG.stage(),0);zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,runGems,runMoney,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
+ cell={};marks={};rowMarks={};areaMarks=[];selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
+ HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=null;
  draw();fit();setTimeout(tutZoneStart,0);toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''),2400);}
-function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;startZone(z.gems);}
-function newGame(){runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone(nextGems(1));}
+function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;runGems=z.runGems||0;runMoney=z.runMoney||0;startZone(z.gems);}
+function newGame(){for(const k in specCache)delete specCache[k];firstSeen={};tainted=DEV&&cfgDiffTxt()!=='';runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone(nextGems(1));}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
- if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
+ if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMarks=[];mode=null;
   tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting){SFX.clear();}if(phase==='clear'&&!collecting)toast(`<div class="tClear">스테이지 클리어!</div>`+big(IC.zone+zone+IC.check),0);},foundG?1600:300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
-function lose(){phase='lost';SFX.lose();saveRun();PLOG.end();if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
+function lose(){phase='lost';SFX.lose();saveRun();PLOG.end();if(!tainted&&zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
  setTimeout(()=>{$('overBody').innerHTML=`<div class="oBig">${IC.zone}<b>${zone}</b></div><div class="oSub"><span class="st">${IC.tile}<b>0</b></span><span class="st">${IC.best}<b>${best}</b></span></div>`;$('over').classList.add('show');fitFull($('over'));},1400);}
-function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force)TUT.finish(c.id);}TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
+function spendTile(n){const b=tiles;tiles-=n;if(tiles>0&&tiles<=3&&tiles<b)SFX.warn();}
+function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force&&c.color&&hand[i]!==c.color){bad(x,y);return;}if(c&&c.action&&c.force)TUT.finish(c.id);}TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
  if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
- else{if(!(t&&fx.freeov))tiles--;if(nt)cell[k]=nt;else delete cell[k];}
+ else{if(!(t&&fx.freeov))spendTile(1);if(nt)cell[k]=nt;else delete cell[k];}
  logPlace(h,x,y,t,nt,!!(g&&g.f));if(g&&g.f)SFX.find(nt);else if(!t)SFX.place();else if(nt)SFX.mix();else SFX.empty();hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
 function bad(x,y){SFX.bad();badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
-function eraseAt(x,y){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const cs=TUT.step();if(cs&&cs.erase&&cell[K(x,y)])TUT.finish(cs.id);}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;PLOG.mv(`E 지우개(${x+1},${y+1}) 타일${tiles}`);SFX.erase();afterPlace(false);}
+function eraseAt(x,y){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const cs=TUT.step();if(cs&&cs.erase&&cell[K(x,y)])TUT.finish(cs.id);}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];spendTile(1);PLOG.mv(`E 지우개(${x+1},${y+1}) 타일${tiles}`);SFX.erase();afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
 function collect(){if(collecting||collected)return;collecting=true;TUT.finish('sell');toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
- const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;PLOG.clear(earned);draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();if(TUT.on&&zone===3)tutEnd();else openShop();},2200);},420);return;}
-  const g=list[i++],v=(price(g.c)+(perm.value&&isMix(g.c)?1:0))*(fx.double?2:1);earned+=v;
+ const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;PLOG.clear(earned);draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();if(spanLeft)spanLeft--;if(TUT.on&&zone===3)tutEnd();else openShop();},2200);},420);return;}
+  const g=list[i++],v=price(g.c)*(fx.double?2:1)+(perm.value&&isMix(g.c)?1:0);earned+=v;
   const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
   g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=SK?gemSvg(g.c,w):`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(0.35)`;f.style.opacity='0.9';}));
@@ -809,39 +821,41 @@ function collect(){if(collecting||collected)return;collecting=true;TUT.finish('s
 // ---------- 상점 ----------
 function offerList(){{const f=tutShopFix();if(f)return f.items.slice();}const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');tutShop();}
-const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'계속',span:'5스테이지 동안'};
+const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'게임 끝까지 계속',span:'5스테이지 동안'};
 function tileCost(z){return CFG.shopCost+Math.floor((Math.max(1,z)-1)/Math.max(1,CFG.shopStep))*CFG.shopInc;}
 function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1);
  $('shopTiles').innerHTML=`<span class="lb">남은 타일</span>${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`<span class="lb">돈</span>${IC.coin}<b>${money}</b><span class="lb">원</span>`;
- $('shopNext').innerHTML=`<span class="lb">다음</span><span class="st">${IC.zone}<b>${zone+1}</b></span><span class="lb">스테이지</span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="lb">보석 <b>${nx.n}</b>개</span>${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}<span class="lb">새 색</span></span>`:''}`;
- {const tc=tileCost(zone),nc=tileCost(zone+1);$('tileSlotL').innerHTML=`${IC.tile}<span class="lbB">타일 ${CFG.shopGet}개 사기</span>${nc>tc?`<span class="lbUp">다음 상점부터 ${nc}원</span>`:''}`;$('buyTile').innerHTML=`${IC.coin}${tc}원`;$('buyTile').disabled=money<tc;}
+ $('shopNext').innerHTML=`<span class="lb">다음</span><span class="st">${IC.zone}<b>${zone+1}</b></span><span class="lb">스테이지</span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="lb">보석 <b>${nx.n}</b>개${nextFx.double?'<b>(+2)</b>':''}</span>${nextFx.double?'<span class="lb">값 ×2</span>':''}${nextFx.small?'<span class="lb">6×6</span>':''}${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}<span class="lb">새 색</span></span>`:''}`;
+ {const tc=tileCost(zone),nc=tileCost(zone+1);$('tileSlotL').innerHTML=`${IC.tile}<span class="lbB">타일 ${CFG.shopGet}개 사기</span>${nc>tc?`<span class="lbUp">다음 상점부터 ${nc}원</span>`:''}`;$('buyTile').innerHTML=`${IC.coin}${tc}원`;const tf=tutShopFix();$('buyTile').disabled=money<tc||!!(tf&&shop.bought===null&&money-tc<ITEMS[tf.must].p);}
  $('shopItems').innerHTML=shop.items.map((id,i)=>{const it=ITEMS[id],sold=shop.bought!==null;const full=it.k==='hold'&&bag.length>=3;
   const dis=sold||money<it.p||full||!!(tutShopFix()&&id!==tutShopFix().must);return `<div class="item${shop.bought===i?' sold':''}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}</div><div class="tag">${KIC[it.k]}<span>${KTAG2[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check+'샀음':full?IC.bag+'가득':IC.coin+it.p+'원'}</button></div>`;}).join('');
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(+b.dataset.buy);});
- const cost=shop.rr+1;$('reroll').innerHTML=`${IC.refresh}<span>진열 바꾸기</span>${IC.coin}${cost}원`;$('reroll').disabled=money<cost||shop.bought!==null||!!tutShopFix();$('shopGo').disabled=!!tutShopFix()&&shop.bought===null;
+ const cost=shop.rr+1;$('reroll').innerHTML=`${IC.refresh}<span>진열 바꾸기</span>${IC.coin}${cost}원`;const minP=Math.min(...Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft)).map(id=>ITEMS[id].p));$('reroll').disabled=money<cost||shop.bought!==null||!!tutShopFix()||money-cost<minP;$('shopGo').disabled=!!tutShopFix()&&shop.bought===null;
  $('shopGo').innerHTML=`<span>다음 스테이지</span>${IC.play}`;
  const own=[...bag.map(b=>[b.id,'가방']),...Object.keys(nextFx).map(k=>[k,'다음 스테이지']),...Object.keys(perm).map(k=>[k,'계속']),...(spanLeft?[['bonus',spanLeft+'스테이지 남음']]:[])];
  $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>')+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#shopBag .tutQuit').forEach(b=>b.onclick=tutQuit);}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;{const f=tutShopFix();if(f&&id!==f.must)return;}TUT.finish('sh_buy');TUT.finish('sh2_buy');PLOG.shop(`${it.nm}(${it.p}원)`);money-=it.p;shop.bought=i;
- if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;const card=document.querySelectorAll('#shopItems .item')[i];const from=card&&card.querySelector('.iIc').getBoundingClientRect();renderShop();shopBought(i,id,from);}
+ if(it.k==='hold')bag.push({id,uses:id==='probe'?3:id==='row'?1:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=5;const card=document.querySelectorAll('#shopItems .item')[i];const from=card&&card.querySelector('.iIc').getBoundingClientRect();renderShop();shopBought(i,id,from);}
 function shopFlash(t){let e=$('shopToast');if(!e){e=document.createElement('div');e.id='shopToast';$('shop').appendChild(e);}e.innerHTML=t;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1300);}
 function shopBought(i,id,from){SFX.buy();const card=document.querySelectorAll('#shopItems .item')[i];if(card){card.classList.add('justBought');}shopFlash(`${ITEM_IC[id]}<b>${ITEMS[id].nm}</b><span>구입!</span>`);
  const own=[...document.querySelectorAll('#shopBag .own')].pop();if(from&&own){const to=own.getBoundingClientRect(),f=document.createElement('div');f.className='flyItem';f.innerHTML=ITEM_IC[id];f.style.cssText=`left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px`;document.body.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${to.left-from.left}px,${to.top-from.top}px) scale(0.5)`;f.style.opacity='0.3';}));setTimeout(()=>{f.remove();own.classList.add('justBought');},650);}}
 $('buyTile').onclick=()=>{const tc=tileCost(zone);if(money<tc)return;TUT.finish('sh_tile');money-=tc;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${tc}원)`);SFX.buy();renderShop();const tb=$('shopTiles');if(tb){tb.classList.remove('bump');void tb.offsetWidth;tb.classList.add('bump');const r=tb.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+CFG.shopGet;p.style.left=(r.right-10)+'px';p.style.top=(r.top)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);}const sl=document.querySelector('#shop .tileSlot');if(sl){sl.classList.remove('justBought');void sl.offsetWidth;sl.classList.add('justBought');}};
 $('reroll').onclick=()=>{if(tutShopFix())return;const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;PLOG.shop(`진열 바꾸기(${cost}원)`);shop.items=offerList();renderShop();};
-$('shopGo').onclick=()=>{if(tutShopFix()&&shop.bought===null)return;$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
+$('shopGo').onclick=()=>{if(tutShopFix()&&shop.bought===null)return;$('shop').classList.remove('show');fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
 
 // ---------- 가방 사용 ----------
 function picker(title,colors,cb){$('pickTitle').innerHTML=title;$('pickList').innerHTML=colors.map(c=>`<button class="pickC" data-pc="${c}" aria-label="${NAME[c]}">${SK?SK.tileImg(c,72):`<svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.03)}" fill="${FILL[c]}"/></svg>`}</button>`).join('');
  document.querySelectorAll('[data-pc]').forEach(b=>b.onclick=()=>{$('pickPop').classList.remove('show');cb(+b.dataset.pc);});$('pickPop').classList.add('show');}
+function longPress(el,onTap,onLong){let t=0,fired=false;el.onpointerdown=e=>{fired=false;clearTimeout(t);t=setTimeout(()=>{fired=true;onLong();},500);};const end=()=>{clearTimeout(t);};el.onpointerup=end;el.onpointerleave=end;el.onpointercancel=end;el.onclick=e=>{if(fired){fired=false;return;}onTap();};}
+function tapBag(i){const it=bag[i];if(!it)return;if(!firstSeen[it.id]){firstSeen[it.id]=1;itemPop({id:it.id,idx:i});return;}if(it.id==='probe'||it.id==='row'){if(mode===it.id){mode=null;draw();return;}armed=null;peekPick=null;peekView=null;mode=it.id;draw();return;}useBag(i);}
 function useBag(i){const it=bag[i];if(phase!=='play')return;armed=null;PLOG.mv(`I ${ITEMS[it.id].nm} 꺼냄`);peekPick=null;peekView=null;
  if(it.id==='pick')picker(ITEM_IC.pick,poolList().length?ALL.filter(c=>poolList().includes(c)):ALL,c=>{hand[hs]=c;bag.splice(i,1);draw();});
- else if(it.id==='area'){const cs=ALL.filter(c=>live().some(g=>g.c===c));picker(ITEM_IC.area,cs,c=>{const L=live().filter(g=>g.c===c),g=L[ri(L.length)];const x=Math.max(0,Math.min(G-3,g.x-ri(3))),y=Math.max(0,Math.min(G-3,g.y-ri(3)));areaMark={x,y,c};bag.splice(i,1);draw();});}
- else if(it.id==='probe'){mode='probe';draw();}}
+ else if(it.id==='area'){const cs=ALL.filter(c=>live().some(g=>g.c===c));picker(ITEM_IC.area,cs,c=>{const L=live().filter(g=>g.c===c),g=L[ri(L.length)];const x=Math.max(0,Math.min(G-3,g.x-ri(3))),y=Math.max(0,Math.min(G-3,g.y-ri(3)));areaMarks.push({x,y,c});bag.splice(i,1);draw();});}
+ else if(it.id==='probe'||it.id==='row'){mode=it.id;draw();}}
 function boardTap(x,y){const k=K(x,y);
- if(mode==='probe'){const i=bag.findIndex(b=>b.id==='probe');if(i<0){mode=null;draw();return;}TUT.finish('s2_probe');marks[k]=gems.some(g=>!g.f&&g.x===x&&g.y===y);PLOG.mv(`I 탐지(${x+1},${y+1}) ${marks[k]?'있음':'없음'}`);SFX.ping();bag[i].uses--;if(!bag[i].uses)bag.splice(i,1);mode=null;draw();return;}
- if(mode==='row'){TUT.finish('s3_row');rowMarks[y]=live().filter(g=>g.y===y).length;PLOG.mv(`I 줄 탐지 ${y+1}행 ${rowMarks[y]}개`);SFX.ping();mode=null;fx.row=false;draw();return;}
+ if(mode==='probe'){const i=bag.findIndex(b=>b.id==='probe');if(i<0){mode=null;draw();return;}TUT.finish('s2_probe');marks[k]=gems.some(g=>!g.f&&g.x===x&&g.y===y);PLOG.mv(`I 탐지(${x+1},${y+1}) ${marks[k]?'있음':'없음'}`);SFX.ping();bag[i].uses--;if(!bag[i].uses){bag.splice(i,1);mode=null;}draw();return;}
+ if(mode==='row'){const i=bag.findIndex(b=>b.id==='row');if(i<0){mode=null;draw();return;}rowMarks[y]=live().filter(g=>g.y===y).length;PLOG.mv(`I 줄 탐지 ${y+1}행 ${rowMarks[y]}개`);SFX.ping();bag.splice(i,1);mode=null;draw();return;}
  if(mode==='peek'){if(!cell[k]){bad(x,y);return;}if(!peeked[k]){peeked[k]=true;fx.peek--;PLOG.mv(`I 숫자 보기(${x+1},${y+1})`);}mode=null;peekPick=k;peekView=null;selCell=null;draw();return;}
  if(armed!==null){if(armed==='er'){if(!cell[k]){bad(x,y);return;}armed=null;eraseAt(x,y);}else{const i=armed;armed=null;placeAt(x,y,i);}return;}
  if(peeked[k]){if(peekPick===k){peekPick=null;peekView=null;selCell=null;}else{peekPick=k;peekView=null;selCell=cell[k]?k:null;}draw();return;}
@@ -861,8 +875,8 @@ for(let i=0;i<4;i++){const el=$('h'+i);
  el.addEventListener('pointerup',()=>{const d=drag;endDrag((d,t)=>{armed=null;eraseAt(t.x,t.y);});if(d&&!d.mv){armed=armed==='er'?null:'er';draw();}});el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});}
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.clientX,e.clientY);if(c)boardTap(c.x,c.y);});
-$('bRef').onclick=()=>{const cs=TUT.step();if(phase!=='play'||(tutForce&&!(cs&&cs.ref)))return;if(cs&&cs.ref){tiles-=CFG.refCost;PLOG.mv(`B 바꾸기 타일${tiles}`);SFX.refresh();hand=[1,1,2,0];hs=0;TUT.finish(cs.id);draw();return;}armed=null;tiles-=CFG.refCost;PLOG.mv(`B 바꾸기 타일${tiles}`);SFX.refresh();hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
-$('bCollect').onclick=collect;$('retry').onclick=()=>{PLOG.newRun();newGame();};
+$('bRef').onclick=()=>{const cs=TUT.step();if(phase!=='play'||$('bRef').disabled||(tutForce&&!(cs&&cs.ref)))return;if(cs&&cs.ref){tiles-=CFG.refCost;PLOG.mv(`B 바꾸기 타일${tiles}`);SFX.refresh();hand=[1,1,2,0];hs=0;TUT.finish(cs.id);draw();return;}armed=null;spendTile(CFG.refCost);PLOG.mv(`B 바꾸기 타일${tiles}`);SFX.refresh();hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
+$('bCollect').onclick=collect;$('retry').onclick=()=>startRun(TUT.on);
 
 // ---------- 팝업, 가이드 ----------
 {const sb=document.createElement('button');sb.id='sndBtn';sb.className='icBtn';sb.setAttribute('aria-label','소리');const SP='<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>';const upd=()=>{sb.innerHTML=sv(SP+(SFX.muted?'<path d="M16 9l5 6M21 9l-5 6"/>':'<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'));};upd();sb.onclick=()=>{SFX.toggle();upd();};$('topBtns').prepend(sb);}
@@ -939,18 +953,18 @@ function tutScriptStage1(){tutScript=true;const C=[3,3],B=[5,3],D=[3,1],F=[TUT_G
  const steps=[
   st('gems',{target:'gemRow',text:'이번 스테이지에서 <b>찾을 보석</b>은 여기 보여요.<br>색과 개수를 알려 주고, 찾으면 색이 채워져요.<br>지금은 <b>빨간 보석 1개</b>예요'}),
   st('intro',{target:'boardWrap',text:'이 판 어딘가에 <b>빨간 보석이 1개</b> 숨어 있어요.<br>타일을 놓아 단서를 모아서 찾아봐요'}),
-  st('p1',{action:true,target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:'빨간 타일을 <b>판 가운데 칸</b>으로 끌어다 놓아 보세요'}),
+  st('p1',{action:true,color:1,target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:'빨간 타일을 <b>판 가운데 칸</b>으로 끌어다 놓아 보세요'}),
   st('n0',{target:{cell:C},text:'타일에 숫자가 4개 생겼어요.<br>뾰족한 꼭짓점 쪽에 <b>빨간 보석이 몇 개</b> 있는지 알려 줘요'}),
   st('up',{target:'boardWrap',marks:[{t:'yes',r:[0,0,7,3]}],text:`위쪽 숫자 ${nb4(1)}<br>이 타일보다 <b>위에 있는 줄 전부</b>(노란 곳) 어딘가에<br>보석이 1개 있다는 뜻이에요`}),
   st('down',{target:'boardWrap',marks:[{t:'no',r:[0,4,7,3]}],text:`아래쪽 숫자 ${nb4(0)}<br>타일보다 <b>아래 줄들에는 없어요</b>`}),
   st('left',{target:'boardWrap',marks:[{t:'no',r:[0,0,3,7]}],text:`왼쪽 숫자 ${nb4(0)}<br>타일보다 <b>왼쪽 칸들에도 없어요</b>`}),
   st('right',{target:'boardWrap',marks:[{t:'yes',r:[4,0,3,7]}],text:`오른쪽 숫자 ${nb4(1)}<br>타일보다 <b>오른쪽 칸들</b> 어딘가에 1개 있어요`}),
   st('c1',{target:'boardWrap',marks:[{t:'cand',cells:'auto'}],text:'위쪽이면서 오른쪽!<br>보석은 <b>노란 ? 칸 9곳</b> 중 하나에 있어요'}),
-  st('p2',{action:true,target:{cell:B},force:B,marks:[{t:'cand',cells:'auto'},{t:'target',c:B}],finger:['h0',{cell:B}],text:'후보를 좁혀 봐요. <b>깜빡이는 칸</b>에 놓아 보세요'}),
+  st('p2',{action:true,color:1,target:{cell:B},force:B,marks:[{t:'cand',cells:'auto'},{t:'target',c:B}],finger:['h0',{cell:B}],text:'후보를 좁혀 봐요. <b>깜빡이는 칸</b>에 놓아 보세요'}),
   st('n2',{target:'boardWrap',marks:[{t:'yes',r:[5,0,1,7]},{t:'cand',cells:'auto'}],text:`왼쪽 ${nb4(0)} 오른쪽 ${nb4(0)}이면<br>보석은 <b>이 타일과 같은 세로줄</b>에 있어요.<br>같은 줄에 있는 보석은 위·아래 숫자로만 세요`}),
-  st('p3',{action:true,target:{cell:D},force:D,marks:[{t:'cand',cells:'auto'},{t:'target',c:D}],finger:['h0',{cell:D}],text:'한 번 더! <b>깜빡이는 칸</b>에 놓아 보세요'}),
+  st('p3',{action:true,color:1,target:{cell:D},force:D,marks:[{t:'cand',cells:'auto'},{t:'target',c:D}],finger:['h0',{cell:D}],text:'한 번 더! <b>깜빡이는 칸</b>에 놓아 보세요'}),
   st('n3',{target:'boardWrap',marks:[{t:'yes',r:[0,1,7,1]},{t:'cand',cells:'auto'}],text:`이번엔 위 ${nb4(0)} 아래 ${nb4(0)}<br>보석은 <b>이 타일과 같은 가로줄</b>에 있어요.<br>노란 ? 칸이 <b>딱 1곳</b> 남았어요!`}),
-  st('p4',{action:true,target:{cell:F},force:F,marks:[{t:'cand',cells:'auto'}],finger:['h0',{cell:F}],text:'남은 ? 칸에 빨강을 놓아 <b>보석을 찾아요</b>'})];
+  st('p4',{action:true,color:1,target:{cell:F},force:F,marks:[{t:'cand',cells:'auto'}],finger:['h0',{cell:F}],text:'남은 ? 칸에 빨강을 놓아 <b>보석을 찾아요</b>'})];
  for(const s of steps)TUT.want(s,0);}
 function tutApplyStep(st){tutMarks=(st&&st.marks||[]).map(m=>m.cells==='auto'?{t:'cand',cells:tutCands(1)}:m.t==='candc'?{t:'candc',c:m.c,cells:tutCands(m.c)}:m);if(st&&st.hand){hand=st.hand.slice();hs=0;}if(st&&st.help)tutHelp=true;tutForce=st&&st.force?{x:st.force[0],y:st.force[1]}:null;draw();}
 // ---------- 튜토리얼 연습 2·3, 상점, 끝 ----------
@@ -961,69 +975,70 @@ function tutHelpSvg(){if(!tutHelp||!TUT.on||zone>3||phase!=='play')return '';let
  for(const c of [...new Set(live().map(g=>g.c))])if(Object.values(cell).includes(c))for(const [x,y] of tutCands(c))s+=`<rect x="${x+0.08}" y="${y+0.08}" width="0.84" height="0.84" rx="0.08" fill="${FILL[c]}" fill-opacity="0.32" stroke="${FILL[c]}" stroke-width="0.05" stroke-dasharray="0.12 0.08"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.36" fill="${FILL[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
  return s;}
 const tT=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
-const TUT_SHOP={1:{items:['probe','row','value'],must:'probe'},2:{items:['row','freeov','bonus'],must:'row'}};
+const TUT_SHOP={1:{items:['probe','row','value'],must:'probe'},2:{items:['freeov','row','bonus'],must:'freeov'}};
 const tutShopFix=()=>TUT.on&&TUT_SHOP[zone]?TUT_SHOP[zone]:null;
 const NOWHERE=[-9,-9];
 function tutFloor(){if(TUT.on&&zone<=3&&tiles<15){tiles=15;draw();}}
 function tutScriptStage2(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s2_'+id},o);const R=[3,3],Y=[1,1],R2=[1,3],R3=[3,1],GEM=[1,1];
  const steps=[
   st('intro',{target:'gemRow',text:`연습 2. 위 보석 줄을 보세요.<br>이번엔 ${tT(1)}<b>빨간 보석</b>과 ${tT(2)}<b>노란 보석</b>을<br>하나씩 찾아야 해요`}),
-  st('pr',{action:true,hand:[1,2,1,0],target:{cell:R},force:R,marks:[{t:'target',c:R}],finger:['h0',{cell:R}],text:`${tT(1)} 빨간 타일을 깜빡이는 칸에 놓아 보세요`}),
+  st('pr',{action:true,color:1,hand:[1,2,1,0],target:{cell:R},force:R,marks:[{t:'target',c:R}],finger:['h0',{cell:R}],text:`${tT(1)} 빨간 타일을 깜빡이는 칸에 놓아 보세요`}),
   st('cr',{target:'boardWrap',marks:[{t:'candc',c:1}],text:`빨간 타일의 숫자는 <b>빨간 보석만</b> 세요.<br>노란 보석은 세지 않아요.<br>빨간 보석은 <b>빨간 ? 칸</b> 중 하나예요`}),
-  st('py',{action:true,hand:[1,2,1,0],target:{cell:Y},force:Y,marks:[{t:'candc',c:1},{t:'target',c:Y}],finger:['h1',{cell:Y}],text:`이번엔 ${tT(2)} 노란 타일을 깜빡이는 칸에 놓아 보세요`}),
+  st('py',{action:true,color:2,hand:[1,2,1,0],target:{cell:Y},force:Y,marks:[{t:'candc',c:1},{t:'target',c:Y}],finger:['h1',{cell:Y}],text:`이번엔 ${tT(2)} 노란 타일을 깜빡이는 칸에 놓아 보세요`}),
   st('cy',{target:'boardWrap',marks:[{t:'candc',c:2}],text:`노란 타일의 숫자는 <b>노란 보석만</b> 세요.<br>노란 보석은 <b>노란 ? 칸</b> 중 하나예요`}),
   st('ref',{action:true,ref:true,hand:[2,2,2,0],target:'bRef',force:NOWHERE,marks:[{t:'candc',c:1}],text:`빨간 보석을 더 좁히고 싶은데 손에 ${tT(1)} 빨강이 없어요.<br><b>바꾸기</b>를 눌러 손의 타일을 새로 받아 보세요.<br>타일 1개가 들어요`}),
-  st('pr2',{action:true,target:{cell:R2},force:R2,marks:[{t:'candc',c:1},{t:'target',c:R2}],finger:['h0',{cell:R2}],text:`빨강이 왔어요! 깜빡이는 칸에 놓아 보세요`}),
-  st('pr3',{action:true,hand:[1,1,2,0],target:{cell:R3},force:R3,marks:[{t:'candc',c:1},{t:'target',c:R3}],finger:['h0',{cell:R3}],text:`한 번 더! 깜빡이는 칸에 놓아 보세요`}),
+  st('pr2',{action:true,color:1,target:{cell:R2},force:R2,marks:[{t:'candc',c:1},{t:'target',c:R2}],finger:['h0',{cell:R2}],text:`빨강이 왔어요! 깜빡이는 칸에 놓아 보세요`}),
+  st('pr3',{action:true,color:1,hand:[1,1,2,0],target:{cell:R3},force:R3,marks:[{t:'candc',c:1},{t:'target',c:R3}],finger:['h0',{cell:R3}],text:`한 번 더! 깜빡이는 칸에 놓아 보세요`}),
   st('cov',{target:{cell:GEM},marks:[{t:'candc',c:1}],text:`빨간 보석은 여기! 그런데 이 칸엔 ${tT(2)} <b>노란 타일</b>이 덮여 있어요.<br>그대로 빨강을 놓으면 섞여서 ${tT(3)} 주황이 돼요`}),
   st('er',{action:true,erase:true,target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['er',{cell:GEM}],text:`<b>지우개</b>를 그 칸으로 끌어다 놓아<br>노란 타일을 지워 보세요. 타일 1개가 들어요`}),
-  st('pf',{action:true,hand:[1,1,2,0],target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['h0',{cell:GEM}],text:`이제 빨강을 놓아 <b>빨간 보석</b>을 찾아요`}),
-  st('probe',{action:true,probe:true,target:'bag',force:NOWHERE,text:`상점에서 산 <b>탐지기</b>를 써 볼게요.<br>아래 탐지기를 누르고 <b>쓰기</b>, 그다음 판의 칸 하나를 누르세요`}),
-  st('probeRes',{target:'boardWrap',text:'보석이 있는 칸이면 <b>흰 보석 테두리</b>,<br>없는 칸이면 <b>✕</b>가 남아요.<br>탐지기는 3번 쓸 수 있어요'}),
+  st('pf',{action:true,color:1,hand:[1,1,2,0],target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['h0',{cell:GEM}],text:`이제 빨강을 놓아 <b>빨간 보석</b>을 찾아요`}),
+  st('probe',{action:true,probe:true,target:'bag',force:NOWHERE,text:`상점에서 산 <b>탐지기</b>를 써 볼게요.<br>아래 탐지기를 누르고 <b>쓰기</b>, 그다음 판의 칸 하나를 누르세요.<br>다음부터는 칩만 누르면 바로 켜져요`}),
+  st('probeRes',{target:'boardWrap',text:'보석이 있는 칸이면 <b>흰 보석 테두리</b>,<br>없는 칸이면 <b>✕</b>가 남아요.<br>탐지기는 3번 쓸 수 있고, 켜진 칩을 다시 누르면 꺼져요'}),
   st('free',{target:'boardWrap',help:true,text:'이제 <b>노란 보석</b>을 직접 찾아 보세요.<br>노란 타일을 놓으면 보석이 있을 수 있는 칸을<br><b>?로 보여 줘요(연습에서만)</b>. 진짜 게임에서는<br>숫자를 보고 스스로 찾아야 해요'})];
  for(const s of steps)TUT.want(s,0);}
 function tutScriptStage3(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s3_'+id},o);const C=[3,3];
  const steps=[
-  st('row',{action:true,rowStep:true,target:'boardWrap',force:NOWHERE,text:'상점에서 산 <b>줄 탐지</b>가 켜졌어요!<br>"다음 스테이지에서만" 아이템은 이렇게 바로 효과가 나요.<br>가로줄 하나를 골라 아무 칸이나 눌러 보세요'}),
-  st('rowRes',{target:'boardWrap',text:'그 줄에 있는 <b>보석 수</b>(색과 상관없이)가<br>줄 왼쪽 끝에 표시돼요'}),
   st('intro',{target:'gemRow',text:`연습 3. 위 보석 줄을 보세요. 이번엔 ${tT(3)} <b>주황 보석 1개</b>예요.<br>주황 보석은 <b>주황 타일</b>로만 찾을 수 있어요`}),
   st('mix',{target:'mixBtn',text:`타일을 같은 칸에 겹쳐 놓으면 색이 섞여요.<br>${tT(1)}+${tT(2)}=${tT(3)} ${tT(2)}+${tT(4)}=${tT(6)} ${tT(1)}+${tT(4)}=${tT(5)}<br>이 버튼을 누르면 언제든 다시 볼 수 있어요`}),
-  st('p1',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:`먼저 ${tT(1)} 빨간 타일을 가운데에 놓아요`}),
-  st('p2',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h1',{cell:C}],text:`그 위에 ${tT(2)} 노란 타일을 <b>겹쳐</b> 놓아요`}),
+  st('p1',{action:true,color:1,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:`먼저 ${tT(1)} 빨간 타일을 가운데에 놓아요`}),
+  st('p2',{action:true,color:2,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h1',{cell:C}],text:`그 위에 ${tT(2)} 노란 타일을 <b>겹쳐</b> 놓아요`}),
+  st('fo',{target:'bag',text:'겹쳐 놓았는데 남은 타일이 <b>줄지 않았죠?</b><br>상점에서 산 <b>겹치기 공짜</b>가 켜져 있어서예요.<br>"다음 스테이지에서만" 아이템은 이렇게 저절로 켜지고,<br>켜진 동안 아래에 보여요'}),
   st('co',{target:'boardWrap',marks:[{t:'candc',c:3}],text:`${tT(3)} 주황 타일이 됐어요!<br>이제 숫자는 <b>주황 보석</b>을 세요.<br>주황 보석은 주황 ? 칸 중 하나예요`}),
   st('rule',{target:'boardWrap',text:'<b>같은 색</b>이 겹치거나 <b>세 색이 다 모이면</b><br>칸이 비워져요'}),
   st('free',{target:'boardWrap',help:true,text:'주황 ? 칸에 빨강과 노랑을 겹쳐<br><b>주황 보석</b>을 찾아 보세요.<br>? 칸은 연습에서만 보여요'})];
  for(const s of steps)TUT.want(s,0);}
-function tutShopDetailed(){money=Math.max(money,0)+8;renderShop();const it1=document.querySelector('#shopItems .item');
+function tutShopDetailed(){if(!TUT.seen('sh_money'))money=Math.max(money,0)+8;renderShop();const it1='#shopItems .item:first-child';
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
  S('sh_money',{target:'shopMoney',text:'보석을 팔아 번 <b>돈</b>이에요.<br>기본색 보석 1원, 섞은 색 보석 2원.<br>연습이니 <b>8원</b>을 더 드렸어요'});
- S('sh_tile',{action:true,target:document.querySelector('#shop .tileSlot'),text:`남은 타일이 모자라면 여기서 사요.<br>지금은 <b>${tileCost(zone)}원에 타일 ${CFG.shopGet}개</b>, 몇 번이든 살 수 있어요.<br>${CFG.shopStep}스테이지마다 ${CFG.shopInc}원씩 비싸져요. 한 번 사 보세요`});
+ S('sh_tile',{action:true,target:'#shop .tileSlot',text:`남은 타일이 모자라면 여기서 사요.<br>지금은 <b>${tileCost(zone)}원에 타일 ${CFG.shopGet}개</b>, 몇 번이든 살 수 있어요.<br>${CFG.shopStep}스테이지마다 ${CFG.shopInc}원씩 비싸져요. 한 번 사 보세요`});
  S('sh_card',{target:it1,text:'<b>아이템 카드</b>예요.<br>위에서부터 이름, 언제 효과가 나는지,<br>하는 일이고, 오른쪽이 가격이에요'});
- S('sh_kinds',{target:'shopItems',text:'아이템은 효과가 나는 때가 네 가지예요.<br><b>가방</b>: 넣어 두고 원할 때 꺼내 써요<br><b>다음 스테이지에서만</b>: 다음 판에 저절로<br><b>5스테이지 동안</b> · <b>계속</b>: 그동안 저절로'});
+ S('sh_kinds',{target:'shopItems',text:'아이템은 효과가 나는 때가 네 가지예요.<br><b>가방</b>: 넣어 두고 원할 때 꺼내 써요<br><b>다음 스테이지에서만</b>: 다음 스테이지에 저절로<br><b>5스테이지 동안</b> · <b>계속</b>: 그동안 저절로'});
  S('sh_buy',{action:true,target:it1,text:'한 번에 <b>하나만</b> 살 수 있어요.<br>이번엔 가방 아이템 <b>탐지기</b>를 사 보세요'});
  S('sh_reroll',{target:'reroll',text:'마음에 드는 게 없으면 <b>진열 바꾸기</b>로 새로 받아요.<br>바꿀 때마다 1원씩 비싸져요. 연습에선 잠가 뒀어요'});
- S('sh_bag',{target:'shopBag',text:'산 아이템은 여기 보여요.<br>탐지기는 다음 스테이지에서 써 볼게요'});
+ S('sh_bag',{target:'shopBag',text:'산 아이템은 여기 보여요.<br>탐지기는 다음 스테이지에서 써 볼게요.<br>타일값은 ${CFG.shopStep}스테이지마다 오르니 돈을 아껴 두세요'.replace('${CFG.shopStep}',CFG.shopStep)});
  S('sh_go',{target:'shopGo',text:'준비가 되면 <b>다음 스테이지</b>를 눌러요'});}
-function tutShop2(){money=Math.max(money,0)+4;renderShop();const it1=document.querySelector('#shopItems .item');
+function tutShop2(){if(!TUT.seen('sh2_buy'))money=Math.max(money,0)+4;renderShop();
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
- S('sh2_buy',{action:true,target:it1,text:'이번엔 <b>다음 스테이지에서만</b> 효과가 나는<br><b>줄 탐지</b>를 사 보세요. 연습이니 4원을 더 드렸어요'});
- S('sh2_go',{target:'shopGo',text:'다음 스테이지가 시작되면 바로 효과가 나요.<br><b>다음 스테이지</b>를 눌러요'});}
+ S('sh2_buy',{action:true,target:'#shopItems .item:first-child',text:'이번엔 <b>다음 스테이지에서만</b> 효과가 나는<br><b>겹치기 공짜</b>를 사 보세요. 연습이니 4원을 더 드렸어요'});
+ S('sh2_go',{target:'shopGo',text:'다음 스테이지가 시작되면 저절로 켜져요.<br><b>다음 스테이지</b>를 눌러요'});}
 function tutQuit(){if(!confirm('튜토리얼을 끝내고 처음 화면으로 갈까요?'))return;TUT.reset();TUT.on=false;tutApplyStep(null);$('shop').classList.remove('show');showTitle();}
-function tutEnd(){if(TUT.seen('end')){startRun(false);return;}TUT.want({id:'end',text:'<b>튜토리얼 끝!</b><br>이제 진짜 게임을 처음부터 시작해요',onDone:()=>startRun(false)},300);}
+function tutDoneGo(){try{localStorage.setItem('ms2_tutdone','1');}catch(e){}TUT.on=false;tutApplyStep(null);showTitle();}
+function tutEnd(){if(TUT.seen('end')){tutDoneGo();return;}TUT.want({id:'end',text:'<b>튜토리얼 끝!</b><br>연습에서 받은 타일·돈·아이템은 가져가지 않아요.<br>진짜 게임에서 남은 타일이 <b>3개 이하</b>면<br>숫자가 빨갛게 깜빡여요. 처음 화면으로 돌아가요',onDone:tutDoneGo},300);}
 // ---------- 아이템 이름표와 설명 창 ----------
-const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은값+1',bonus:'찾으면+1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'두 배',probe:'탐지기'};
+const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은값 +1',bonus:'찾으면 +1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'보석 두 배',probe:'탐지기'};
 function itemPop(o){const it=ITEMS[o.id];let st='';
  if(o.idx!=null&&bag[o.idx]&&bag[o.idx].uses)st=`남은 횟수 ${bag[o.idx].uses}번`;
  if(o.id==='peek')st=`남은 칸 ${fx.peek}곳`;
  if(o.id==='bonus')st=`${spanLeft}스테이지 남음`;
  if(it.k==='next'&&o.id!=='peek')st='이번 스테이지에 켜져 있음';
- if(it.k==='perm')st='판이 끝날 때까지 계속';
+ if(it.k==='perm')st='게임이 끝날 때까지 계속';
+ const inGame=it.k==='next'&&!!fx[o.id];const tagTxt=inGame?'이번 스테이지에서만':KTAG2[it.k];
  const use=o.idx!=null||o.id==='peek';
  let p=$('itemPop');if(!p){p=document.createElement('div');p.id='itemPop';p.className='pop';document.body.appendChild(p);p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('show');});}
- p.innerHTML=`<div class="popIn ipIn"><div class="ipIc">${ITEM_IC[o.id]}</div><h3>${it.nm}</h3><div class="ipTag">${KIC[it.k]}<span>${KTAG2[it.k]}</span></div>${st?`<div class="ipSt">${st}</div>`:''}<p class="ipDs">${it.ds}</p>
+ p.innerHTML=`<div class="popIn ipIn"><div class="ipIc">${ITEM_IC[o.id]}</div><h3>${it.nm}</h3><div class="ipTag">${KIC[it.k]}<span>${tagTxt}</span></div>${st?`<div class="ipSt">${st}</div>`:''}<p class="ipDs">${it.ds}</p>
   <div class="ipBtns">${use?`<button id="ipUse" class="primary">쓰기</button>`:''}<button id="ipClose">닫기</button></div></div>`;
  p.classList.add('show');$('ipClose').onclick=()=>p.classList.remove('show');
- if(use)$('ipUse').onclick=()=>{p.classList.remove('show');if(o.id==='peek'){armed=null;peekPick=null;peekView=null;mode='peek';draw();}else useBag(o.idx);};}
+ if(use)$('ipUse').onclick=()=>{p.classList.remove('show');if(o.id==='peek'){armed=null;peekPick=null;peekView=null;mode='peek';draw();}else if(o.id==='probe'||o.id==='row'){armed=null;peekPick=null;peekView=null;mode=o.id;draw();}else useBag(o.idx);};}
 // ---------- 따라 하는 튜토리얼 (각 장면은 이 기기에서 한 번만) ----------
 const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')||'{}');}catch(e){}
  const save=()=>{try{localStorage.setItem('ms2_tut',JSON.stringify(done));}catch(e){}};
@@ -1032,7 +1047,7 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
  document.body.appendChild(box);
  const hole=$('coachHole'),bub=$('coachBub'),fing=$('coachFinger');fing.innerHTML=IC.tap;
  function rectOf(t){if(!t)return null;if(t.cell){const f=$('fld').getBoundingClientRect(),m=SK?SK.margin:0.1,u=f.width/(G+m*2);return {left:f.left+(t.cell[0]+m)*u,top:f.top+(t.cell[1]+m)*u,width:u,height:u};}
-  const e=typeof t==='string'?$(t):t;if(!e||!e.offsetParent&&e.id!=='shop')return null;return e.getBoundingClientRect();}
+  const e=typeof t==='string'?(/^[#.]|\s/.test(t)?document.querySelector(t):$(t)):t;if(!e||!e.offsetParent&&e.id!=='shop')return null;return e.getBoundingClientRect();}
  function place(){if(!cur)return;const r=rectOf(cur.target);const pad=6;
   if(r){hole.style.display='block';Object.assign(hole.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});}else hole.style.display='none';
   hole.classList.toggle('dim',!cur.action);box.classList.toggle('pass',!!cur.action);
@@ -1049,24 +1064,24 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
  window.addEventListener('resize',place);
  return {
   on:false,
-  want(st,delay){if(!TUT.on)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}setTimeout(()=>{if(done.all||done[st.id])return;if(cur){queue.push(st);return;}show(st);},delay||0);},
+  hint(st,delay){if(TUT.on)return;TUT.want.call(null,st,delay,true);},
+  tell(st,delay){if(TUT.on)TUT.want(st,delay);else TUT.hint(st,delay);},
+  want(st,delay,asHint){if(!TUT.on&&!asHint)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}setTimeout(()=>{if(done.all||done[st.id])return;if(cur){queue.push(st);return;}show(st);},delay||0);},
   finish,step:()=>cur,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
   reset(){done={};save();queue=[];cur=null;box.classList.remove('show');tutScript=false;tutMarks=[];tutForce=null;},place};
 })();
 const tileTxt=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
 function tutZoneStart(){tutHelp=false;tutScript=false;
- if(zone===1&&TUT.on&&!TUT.seen('s1_intro'))tutScriptStage1();
- else if(zone===2&&TUT.on&&!TUT.seen('s2_intro'))tutScriptStage2();
- else if(zone===3&&TUT.on&&!TUT.seen('s3_intro'))tutScriptStage3();
- else if(zone===1&&!TUT.seen('place'))TUT.want({id:'place',action:true,target:'handRow',finger:['h0',{cell:[Math.floor(G/2),Math.floor(G/2)]}],text:'손의 타일을 판으로 끌어다 놓아 보세요'},900);
- else if(zone>=2&&!TUT.seen('tools'))TUT.want({id:'tools',target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`},2600);
- if(zone>3&&gems.some(g=>isMix(g.c))&&!TUT.seen('mix')){const c=gems.find(g=>isMix(g.c)).c,p=PRIM.filter(q=>c&q);TUT.want({id:'mix',target:'gemRow',text:`${tileTxt(c)} ${NAME[c]} 보석은 ${tileTxt(p[0])}${NAME[p[0]]}과 ${tileTxt(p[1])}${NAME[p[1]]}을<br>같은 칸에 겹쳐 놓아야 찾아요`},2600);}
- if(bag.length&&!TUT.seen('bag'))TUT.want({id:'bag',target:'bag',text:'산 아이템이 여기 있어요.<br>누르면 <b>설명</b>을 보고 쓸 수 있어요'},2600);}
+ if(TUT.on){if(zone===1&&!TUT.seen('s1_intro'))tutScriptStage1();else if(zone===2&&!TUT.seen('s2_intro'))tutScriptStage2();else if(zone===3&&!TUT.seen('s3_intro'))tutScriptStage3();return;}
+ if(zone>=2)TUT.hint({id:'h_tools',target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`},2600);
+ if(gems.some(g=>isMix(g.c))){const c=gems.find(g=>isMix(g.c)).c,p=PRIM.filter(q=>c&q);TUT.hint({id:'h_mix',target:'gemRow',text:`${tileTxt(c)} ${NAME[c]} 보석은 ${tileTxt(p[0])}${NAME[p[0]]}과 ${tileTxt(p[1])}${NAME[p[1]]}을<br>같은 칸에 <b>겹쳐</b> 놓아야 찾아요`},2600);}
+ if(bag.length)TUT.hint({id:'h_bag',target:'bag',text:'산 아이템이 여기 있어요. 누르면 켜지고,<br>길게 누르면 <b>설명</b>이 떠요'},2600);}
 function tutPlaced(x,y,found){TUT.finish('place');
- if(found){TUT.want({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
- else if(!tutScript&&cell[K(x,y)])TUT.want({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
-function tutClear(){TUT.want({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요',skipIf:()=>collecting||collected},1200);}
-function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}TUT.want({id:'shopTile',target:document.querySelector('#shop .tileSlot'),text:'돈으로 <b>타일</b>을 살 수 있어요. 몇 번이든 살 수 있어요'},300);TUT.want({id:'shopItem',target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>카드의 설명을 보고 골라요'},350);TUT.want({id:'shopReroll',target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'},400);TUT.want({id:'shopGo',target:'shopNext',text:'다음 스테이지에 나올 보석을 보고<br>준비가 되면 <b>다음 스테이지</b>를 눌러요'},450);}
+ if(!TUT.on&&tiles>0&&tiles<=3)TUT.hint({id:'h_low',target:'stat',text:'남은 타일이 <b>3개 이하</b>예요. 0이 되면 끝!<br>스테이지를 끝내면 상점에서 타일을 살 수 있어요'},500);
+ if(found){TUT.tell({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
+ else if(!tutScript&&cell[K(x,y)])TUT.tell({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
+function tutClear(){TUT.tell({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요',skipIf:()=>collecting||collected},1200);}
+function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}if(TUT.on)return;TUT.hint({id:'h_shop',target:'#shop .tileSlot',text:`타일이 모자라면 여기서 사요. 값은 ${CFG.shopStep}스테이지마다 올라요.<br>아이템은 한 번에 <b>하나만</b>, 카드 글을 보고 골라요`},300);}
 // ---------- 플레이 기록 (기기에 최근 5판) ----------
 const PLOG=(()=>{const CLn={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};let runs=[];try{runs=JSON.parse(localStorage.getItem('ms2_logs')||'[]');}catch(e){}
  let run=null;const save=()=>{try{localStorage.setItem('ms2_logs',JSON.stringify(runs.slice(-5)));}catch(e){}};
@@ -1090,24 +1105,24 @@ function cfgDiffTxt(){const a=[];for(const k in CFG0){if(k!=='items'&&CFG[k]!==C
 // ---------- 시작 화면과 기록 ----------
 let runGems=0,runMoney=0;
 const loadRuns=()=>{try{return JSON.parse(localStorage.getItem('ms2_runs')||'[]');}catch(e){return [];}};
-function saveRun(){const r=loadRuns();const d=new Date(),p=n=>String(n).padStart(2,'0');r.push({d:`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,z:zone,g:runGems,m:runMoney,t:TUT.on?1:0});while(r.length>50)r.shift();try{localStorage.setItem('ms2_runs',JSON.stringify(r));}catch(e){}}
+function saveRun(){const r=loadRuns();const d=new Date(),p=n=>String(n).padStart(2,'0');r.push({d:`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,z:zone,g:runGems,m:runMoney,t:TUT.on?1:0,c:tainted?1:0});while(r.length>50)r.shift();try{localStorage.setItem('ms2_runs',JSON.stringify(r));}catch(e){}}
 function titleArt(){const row=[1,2,4,3,6,5];return `<div class="tTiles">${row.map(c=>tileIco(c,34)).join('')}</div>`;}
 function fitFull(el){if(!el||!el.classList.contains('show'))return;const inner=el.firstElementChild;if(!inner)return;inner.style.zoom='';const H=el.clientHeight,h=inner.scrollHeight;if(h>H)inner.style.zoom=Math.max(0.5,(H-2)/h).toFixed(3);}
 function fitAll(){['shop','title','records','over','guide'].forEach(id=>fitFull($(id)));}
 window.addEventListener('resize',()=>setTimeout(fitAll,50));
 function showTitle(){$('over').classList.remove('show');$('shop').classList.remove('show');$('records').classList.remove('show');toastOff();
- const played=loadRuns().length>0;
+ let tutDone=false;try{tutDone=localStorage.getItem('ms2_tutdone')==='1';}catch(e){}const played=loadRuns().length>0||tutDone;
  $('title').innerHTML=`<div class="fIn center tIn">${titleArt()}<h1 class="tLogo">MIX<span>&amp;</span>SEEK</h1><div class="tBest">${IC.best}<span>최고 기록</span><b>${best?'스테이지 '+best:'없음'}</b></div>
   <div class="tBtns"><button id="tStart" class="${played?'primary':''}">${IC.play}<span>시작</span></button><button id="tTut" class="${played?'':'primary'}">${IC.tap}<span>튜토리얼</span></button><button id="tRec">${IC.best}<span>기록</span></button></div>
   ${played?'':'<p class="tHint">처음이라면 튜토리얼부터 해 보세요</p>'}</div>`;
  $('title').classList.add('show');fitFull($('title'));
  $('tStart').onclick=()=>startRun(false);$('tTut').onclick=()=>startRun(true);$('tRec').onclick=showRecords;}
-function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut;PLOG.newRun();newGame();}
+function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut||loadRuns().length===0;PLOG.newRun();newGame();}
 function showRecords(){const r=loadRuns().slice().reverse(),top=loadRuns().slice().sort((a,b)=>b.z-a.z||b.g-a.g).slice(0,3);
  $('records').innerHTML=`<div class="fIn rIn"><div class="rHead"><button id="rBack" aria-label="뒤로">${IC.next}</button><h2>기록</h2><span></span></div>
   <div class="rSum"><div>${IC.best}<span>최고 기록</span><b>${best?'스테이지 '+best:'없음'}</b></div><div>${IC.zone}<span>한 판 수</span><b>${r.length}판</b></div></div>
   <h3>가장 멀리 간 판 3</h3>${top.length?`<ol class="rList">${top.map((x,i)=>`<li><i>${i+1}</i><b>스테이지 ${x.z}</b><span>보석 ${x.g}개 · ${x.d}</span></li>`).join('')}</ol>`:'<p class="rNone">아직 기록이 없습니다</p>'}
-  <h3>최근 판 5</h3>${r.length?`<ul class="rList">${r.slice(0,5).map(x=>`<li><b>스테이지 ${x.z}</b><span>보석 ${x.g}개 · ${x.d}${x.t?' · 튜토리얼':''}</span></li>`).join('')}</ul>`:'<p class="rNone">아직 기록이 없습니다</p>'}</div>`;
+  <h3>최근 판 5</h3>${r.length?`<ul class="rList">${r.slice(0,5).map(x=>`<li><b>스테이지 ${x.z}</b><span>보석 ${x.g}개 · ${x.d}${x.t?' · 튜토리얼':''}${x.c?' · 개발자':''}</span></li>`).join('')}</ul>`:'<p class="rNone">아직 기록이 없습니다</p>'}</div>`;
  $('records').classList.add('show');fitFull($('records'));$('rBack').onclick=()=>$('records').classList.remove('show');}
 $('toTitle').onclick=showTitle;
 function guide(on){$('guide').classList.toggle('show',on);if(on)gShow(1);}
@@ -1193,16 +1208,16 @@ if(DEV){(function(){
  // 바로 하기
  const close=()=>el.classList.remove('show');
  const shut=()=>{$('shop').classList.remove('show');$('over').classList.remove('show');};
- q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();zone=z;startZone();close();};
+ q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();$('title').classList.remove('show');tainted=true;fx={};nextFx={};zone=z;startZone(nextGems(zone));close();};
  q('#dvRestart').onclick=()=>{shut();restartZone();close();};
  q('#dvNew').onclick=()=>{newGame();close();};
- q('#dvT5').onclick=()=>{tiles+=5;draw();toastDev('타일 '+tiles);};q('#dvTm5').onclick=()=>{tiles=Math.max(1,tiles-5);draw();toastDev('타일 '+tiles);};
- q('#dvM10').onclick=()=>{money+=10;draw();toastDev('돈 '+money+'원');};
- q('#dvShow').onclick=()=>{reveal=!reveal;draw();close();};
+ q('#dvT5').onclick=()=>{tainted=true;tiles+=5;draw();toastDev('타일 '+tiles);};q('#dvTm5').onclick=()=>{tainted=true;tiles=Math.max(1,tiles-5);draw();toastDev('타일 '+tiles);};
+ q('#dvM10').onclick=()=>{tainted=true;money+=10;draw();toastDev('돈 '+money+'원');};
+ q('#dvShow').onclick=()=>{tainted=true;reveal=!reveal;draw();close();};
  q('#dvShop').onclick=()=>{close();openShop();};
- qa('[data-give]').forEach(b=>b.onclick=()=>{const id=b.dataset.give,it=ITEMS[id];
-  if(it.k==='hold'){if(bag.length>=3){toastDev('가방이 가득 찼습니다');return;}bag.push({id,uses:id==='probe'?3:0});}
-  else if(it.k==='next'){fx[id]=true;if(id==='peek')fx.peek=3;if(id==='row')mode='row';toastDev(it.nm+': 이번 스테이지에 켰습니다');}
+ qa('[data-give]').forEach(b=>b.onclick=()=>{tainted=true;const id=b.dataset.give,it=ITEMS[id];
+  if(it.k==='hold'){if(bag.length>=3){toastDev('가방이 가득 찼습니다');return;}bag.push({id,uses:id==='probe'?3:id==='row'?1:0});}
+  else if(it.k==='next'){fx[id]=true;if(id==='peek')fx.peek=3;toastDev(it.nm+': 이번 스테이지에 켰습니다');}
   else if(it.k==='perm'){perm[id]=true;if(id==='hand4'){HN=Math.min(4,CFG.hand+1);}}
   else if(it.k==='span')spanLeft=5;
   draw();if(it.k!=='next')toastDev(it.nm+' 받음');});
