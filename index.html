@@ -349,6 +349,13 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .shopRow button{padding:10px}
 .shopBag{flex-direction:row !important;flex-wrap:wrap;gap:6px 12px;margin-top:10px}
 .ownHead{width:100%}
+/* 튜토리얼 끝내기, 팝업을 말풍선 위로 */
+#coachOff{display:none !important}
+#coachBtns{justify-content:flex-end}
+.pop{z-index:65 !important}
+.tutQuit{margin-left:auto;font-size:13px;padding:5px 10px;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#shopBag .tutQuit{margin-left:0;margin-top:4px}
+#gemRow .tutQuit{position:relative;z-index:70}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -697,7 +704,7 @@ function draw(){
  // 위 정보
  $('stat').innerHTML=`<span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.tile}<b>${tiles}</b></span><span class="st">${IC.coin}<b id="moneyNum">${money}</b></span><span class="st muted">${IC.best}${best}</span>`;
  const order=[...gems].sort((a,b)=>ALL.indexOf(a.c)-ALL.indexOf(b.c)||(b.f-a.f));
- $('gemRow').innerHTML=order.map(g=>SK?SK.gemImg(g.c,g.f):`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.9,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.88,'none',FILL[g.c],0.08)}</svg>`).join('')+`<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span>`;
+ $('gemRow').innerHTML=order.map(g=>SK?SK.gemImg(g.c,g.f):`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.9,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.88,'none',FILL[g.c],0.08)}</svg>`).join('')+`<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span>`+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#gemRow .tutQuit').forEach(b=>b.onclick=tutQuit);
  // 손
  for(let i=0;i<4;i++){const b=$('h'+i),c=hand[i];b.style.display=phase==='play'&&i<HN?'flex':'none';b.innerHTML=c?(SK?SK.handImg(c):`<svg viewBox="0 0 1 1" class="hdia"><polygon points="0.5,0.03 0.97,0.5 0.5,0.97 0.03,0.5" fill="${FILL[c]}"/></svg>`):'';b.classList.toggle('on',hs===i&&!(selCell&&cell[selCell]));b.classList.toggle('armed',armed===i);b.style.opacity=drag&&drag.i===i?0.35:1;}
  $('er').style.display=phase==='play'?'flex':'none';$('er').style.opacity=drag&&drag.er?0.35:1;$('er').classList.toggle('armed',armed==='er');
@@ -770,7 +777,7 @@ function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1)
  const cost=shop.rr+1;$('reroll').innerHTML=`${IC.refresh}<span>진열 바꾸기</span>${IC.coin}${cost}원`;$('reroll').disabled=money<cost||shop.bought!==null||!!tutShopFix();$('shopGo').disabled=!!tutShopFix()&&shop.bought===null;
  $('shopGo').innerHTML=`<span>다음 스테이지</span>${IC.play}`;
  const own=[...bag.map(b=>[b.id,'가방']),...Object.keys(nextFx).map(k=>[k,'다음 스테이지']),...Object.keys(perm).map(k=>[k,'계속']),...(spanLeft?[['bonus',spanLeft+'스테이지 남음']]:[])];
- $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>');}
+ $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>')+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#shopBag .tutQuit').forEach(b=>b.onclick=tutQuit);}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;{const f=tutShopFix();if(f&&id!==f.must)return;}TUT.finish('sh_buy');TUT.finish('sh2_buy');PLOG.shop(`${it.nm}(${it.p}원)`);money-=it.p;shop.bought=i;
  if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;renderShop();}
 $('buyTile').onclick=()=>{if(money<CFG.shopCost)return;TUT.finish('sh_tile');money-=CFG.shopCost;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${CFG.shopCost}원)`);renderShop();};
@@ -951,6 +958,7 @@ function tutShop2(){money=Math.max(money,0)+4;renderShop();const it1=document.qu
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
  S('sh2_buy',{action:true,target:it1,text:'이번엔 <b>다음 스테이지에서만</b> 효과가 나는<br><b>줄 탐지</b>를 사 보세요. 연습이니 4원을 더 드렸어요'});
  S('sh2_go',{target:'shopGo',text:'다음 스테이지가 시작되면 바로 효과가 나요.<br><b>다음 스테이지</b>를 눌러요'});}
+function tutQuit(){if(!confirm('튜토리얼을 끝내고 처음 화면으로 갈까요?'))return;TUT.reset();TUT.on=false;tutApplyStep(null);$('shop').classList.remove('show');showTitle();}
 function tutEnd(){if(TUT.seen('end')){startRun(false);return;}TUT.want({id:'end',text:'<b>튜토리얼 끝!</b><br>이제 진짜 게임을 처음부터 시작해요',onDone:()=>startRun(false)},300);}
 // ---------- 아이템 이름표와 설명 창 ----------
 const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은값+1',bonus:'찾으면+1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'두 배',probe:'탐지기'};
