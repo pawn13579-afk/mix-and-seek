@@ -425,6 +425,14 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 #bag .chip,#bag .eff{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
 #bag .chip img,#bag .eff img{pointer-events:none}
 #lbTut{display:none}
+
+/* 진단 8~10 */
+.findRing{position:absolute;z-index:15;pointer-events:none;animation:findRing .7s ease-out forwards}
+@keyframes findRing{0%{transform:scale(.7);opacity:1}35%{transform:scale(1.3);opacity:1}65%{transform:scale(1.05);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+.sk .findRing{animation-timing-function:steps(5,end)}
+.flyTile{display:flex;align-items:center;justify-content:center;transition:transform .5s cubic-bezier(.4,0,.6,1),opacity .5s}
+.flyTile .ic,.flyTile svg,.flyTile img{width:100%;height:100%}
+#dvSeed{width:9.5em}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -520,14 +528,97 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 </div>
 
 <script>
-// ---------- 개발자 모드 설정 (주소에 ?dev 한 번 붙이면 이 기기에서 계속 켜짐, ?dev=0 으로 끔) ----------
-const DEV=(()=>{const q=location.search;try{if(/[?&]dev=0/.test(q)){localStorage.removeItem('ms2_dev');return false;}if(/[?&]dev\b/.test(q)){localStorage.setItem('ms2_dev','1');return true;}return localStorage.getItem('ms2_dev')==='1';}catch(e){return /[?&]dev\b/.test(q);}})();
+// Mix & Seek 규칙. 시험판 화면(index.html에 그대로 들어감)과 node 시험·모의 실험이 같은 코드를 쓴다.
+// 화면·소리·저장소를 모른다. 게임 상태는 인자로 받는다. 무작위는 시드로 만든 난수기만 쓴다.
+(function(root){
+const PRIM=[1,2,4],MIXC=[3,6,5],ALL=[1,2,4,3,6,5];
+const isMix=c=>MIXC.includes(c);
+
+// ---------- 기본값 (개발자 모드로 바꾸기 전) ----------
 const CFG0={start:10,find:1,shopCost:2,shopStep:4,shopInc:1,shopGet:3,gemP:1,gemM:2,hand:3,refCost:1,items:{}};
-const CFG=(()=>{let c={};if(DEV)try{c=JSON.parse(localStorage.getItem('ms2_cfg')||'{}');}catch(e){}return Object.assign({},CFG0,c,{items:Object.assign({},c.items||{})});})();
+
+// ---------- 난수: 시드 → 같은 수열 ----------
+function mulberry32(a){a>>>=0;return function(){a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mix32(h,n){h=Math.imul(h^(n>>>0),0x85EBCA6B);h=Math.imul(h^h>>>13,0xC2B2AE35);return (h^h>>>16)>>>0;}
+function seedOf(...ns){let h=0x9E3779B9;for(const n of ns)h=mix32(h,n);return h;}
+const randomSeed=()=>Math.floor(Math.random()*4294967296)>>>0;
+// 스테이지마다 따로 시드를 건다. 같은 시드·같은 스테이지면 보석 자리가 같고, 같은 수를 두면 손·진열도 같다
+function streams(seed,zone){return {gem:mulberry32(seedOf(seed,zone,1)),hand:mulberry32(seedOf(seed,zone,2)),shop:mulberry32(seedOf(seed,zone,3)),item:mulberry32(seedOf(seed,zone,4))};}
+const pick=(rng,n)=>Math.floor(rng()*n);
+
+// ---------- 놓기·단서 ----------
+// t: 칸에 있던 타일 색(없으면 0), h: 놓는 타일 색. 같은 색이 겹치거나 세 기본색이 다 모이면 칸이 빈다
+function result(t,h){if(t&h)return 0;const u=t|h;return u===7?0:u;}
+// live: 아직 못 찾은 보석들. 그 칸에 t색 타일이 있을 때 네 방향의 같은 색 보석 수
+function clue(live,x,y,t){const L=live.filter(g=>g.c===t);return{l:L.filter(g=>g.x<x).length,r:L.filter(g=>g.x>x).length,u:L.filter(g=>g.y<y).length,d:L.filter(g=>g.y>y).length};}
+// 손에 올 수 있는 색: 남은 보석 색과, 섞은 색 보석을 만드는 기본색
+function poolList(live){const S=new Set();for(const g of live){S.add(g.c);if(isMix(g.c))for(const p of PRIM)if(g.c&p)S.add(p);}return [...S];}
+// 섞기 재료로만 쓰이는 기본색의 가중치. 스테이지가 깊을수록 재료가 자주 온다
+const pw=z=>z<=10?1:z<=15?1.5:2;
+function draw1(live,zone,lucky,rng){const cs=poolList(live);if(!cs.length)return 0;const gc=new Set(live.map(g=>g.c));
+ const w=cs.map(c=>(PRIM.includes(c)&&!gc.has(c)?pw(zone):1)*(lucky&&gc.has(c)?2:1));const tot=w.reduce((a,b)=>a+b,0);let r=rng()*tot;for(let i=0;i<cs.length;i++){r-=w[i];if(r<0)return cs[i];}return cs[cs.length-1];}
+
+// ---------- 스테이지표 ----------
+const STAGES=[
+ {c:[1],n:1,tag:'시작'},{c:[1],n:2,tag:'보석이 하나 늘어남'},
+ {c:[1,2],n:2,nc:2,tag:'새 색 노랑'},{c:[1,2],n:3,tag:'보석이 하나 늘어남'},{c:[1,2],n:3,tag:'같은 수준, 다른 판'},
+ {c:[1,2,4],n:3,nc:4,tag:'새 색 파랑'},{c:[1,2,4],n:4,tag:'보석이 하나 늘어남'},{c:[1,2,4],n:3,tag:'쉬어 가는 스테이지'},
+ {c:[3],n:2,nc:3,tag:'새 색 주황 · 주황 보석만'},{c:[1,2,4,3],n:4,m:1,tag:'색이 하나 늘어남'},{c:[1,2,4,3],n:4,m:1,tag:'같은 수준, 다른 판'},{c:[1,2,4,3],n:5,m:1,tag:'보석이 하나 늘어남'},{c:[1,2,4,3],n:4,tag:'쉬어 가는 스테이지'},
+ {c:[6],n:2,nc:6,tag:'새 색 초록 · 초록 보석만'},{c:[1,2,4,6],n:5,m:1,tag:'색이 하나 늘어남'},{c:[1,3,4,6],n:5,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,6],n:4,m:1,tag:'쉬어 가는 스테이지'},
+ {c:[5],n:2,nc:5,tag:'새 색 보라 · 보라 보석만'},{c:[1,2,4,5],n:5,m:1,tag:'색이 하나 늘어남'},{c:[3,6,5],n:5,tag:'섞은 색 보석만'},{c:[1,3,6,5],n:6,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,3],n:5,m:1,tag:'쉬어 가는 스테이지'},
+ {c:[2,3,6,5],n:7,m:2,tag:'보석이 하나 늘어남'},{c:[3,6,5],n:6,tag:'섞은 색 보석만'},{c:[2,4,6,3],n:8,m:3,tag:'보석이 늘어남'},{c:[1,2,4,5],n:6,m:2,tag:'쉬어 가는 스테이지'}];
+// 27스테이지부터는 4스테이지 묶음으로 돈다. 색 네 가지는 시드와 스테이지 번호로 정해져 상점 미리 보기와 실제 판이 같다
+function spec(z,seed){if(z<=STAGES.length){const t=STAGES[z-1];return {c:t.c,n:t.n,nc:t.nc||0,m:t.m||0,tag:t.tag};}
+ const k=z-STAGES.length,cy=Math.floor((k-1)/4),pos=(k-1)%4,n=Math.min(10,6+cy+[1,1,2,0][pos]);
+ if(pos===1&&cy%2===0)return {c:[3,6,5],n:Math.min(9,n),nc:0,m:0,tag:'섞은 색 보석만'};
+ const rng=mulberry32(seedOf(seed||0,z,0)),pool=[...ALL],c=[];while(c.length<4)c.push(pool.splice(pick(rng,pool.length),1)[0]);
+ return {c:ALL.filter(x=>c.includes(x)),n,nc:0,m:Math.min(n-1,2+cy+[0,1,1,0][pos]),tag:pos===3?'쉬어 가는 스테이지':'보석이 늘어남'};}
+// 보석 배치. extra: 보석 두 배 스테이지의 +2. 새 색 스테이지는 첫 보석이 새 색이다
+function makeGems(sp,G,extra,rng){const n=Math.min(sp.n+(extra||0),G*G-1),P=sp.c,MX=P.filter(isMix),used=new Set(),gems=[];
+ while(gems.length<n){const x=pick(rng,G),y=pick(rng,G);if(used.has(x+','+y))continue;used.add(x+','+y);gems.push({x,y,c:(gems.length===0&&sp.nc)?sp.nc:P[pick(rng,P.length)],f:false,lock:gems.length===0&&!!sp.nc});}
+ if(MX.length){let cnt=gems.filter(g=>isMix(g.c)).length;const cand=gems.filter(g=>!g.lock&&PRIM.includes(g.c));while(cnt<sp.m&&cand.length){cand.splice(pick(rng,cand.length),1)[0].c=MX[pick(rng,MX.length)];cnt++;}}
+ return gems;}
+
+// ---------- 돈 ----------
+// 보석 두 배는 기본값에만 걸고, 섞은 보석 값 +1은 그 밖에 더한다
+const gemValue=(c,cfg,dbl,plus1)=>(isMix(c)?cfg.gemM:cfg.gemP)*(dbl?2:1)+(plus1&&isMix(c)?1:0);
+const tileCost=(z,cfg)=>cfg.shopCost+Math.floor((Math.max(1,z)-1)/Math.max(1,cfg.shopStep))*cfg.shopInc;
+
+// ---------- 아이템 ----------
+// k: hold 가방에 넣고 쓰기, next 다음 스테이지에서만, perm 게임 끝까지, span 5스테이지 동안
+const ITEMS0={
+ pick:{nm:'색 골라 받기',ds:'손의 타일 한 장을 원하는 색으로 바꾼다',p:1,k:'hold'},
+ peek:{nm:'숫자 다시 보기',ds:'판의 타일을 눌러 다른 색 타일이었을 때의 숫자를 본다. 3칸까지',p:2,k:'next'},
+ row:{nm:'줄 탐지',ds:'칸을 눌러 그 가로줄에 보석이 몇 개 있는지 본다(색과 상관없이, 1번)',p:3,k:'hold'},
+ area:{nm:'색 탐지',ds:'한 색을 골라 그 색 보석 중 하나가 있는 3×3 범위를 표시한다(어느 보석인지는 무작위)',p:4,k:'hold'},
+ freeov:{nm:'겹치기 공짜',ds:'타일 위에 겹쳐 놓아도 남은 타일이 줄지 않는다',p:3,k:'next'},
+ value:{nm:'섞은 보석 값 +1',ds:'섞은 색 보석을 팔 때 1원씩 더 받는다',p:5,k:'perm'},
+ bonus:{nm:'찾으면 타일 +1',ds:'앞으로 5스테이지 동안 보석을 찾으면 타일을 1개 더 받는다',p:8,k:'span'},
+ hand4:{nm:'네 번째 손',ds:'손에 드는 타일이 4장이 된다',p:10,k:'perm'},
+ lucky:{nm:'행운의 손',ds:'남은 보석 색 타일이 두 배 자주 나온다',p:2,k:'next'},
+ small:{nm:'좁은 판',ds:'판이 6×6이 된다',p:7,k:'next'},
+ double:{nm:'보석 두 배 스테이지',ds:'보석이 2개 더 나오고, 보석의 기본값이 두 배가 된다',p:1,k:'next'},
+ probe:{nm:'탐지기 3회',ds:'칸을 눌러 그 칸에 보석이 있는지 본다(3번)',p:5,k:'hold'}};
+const items=()=>JSON.parse(JSON.stringify(ITEMS0));
+const USES={probe:3,row:1};
+// 상점 진열 세 개. 이미 가진 '게임 끝까지' 아이템과 효과가 남은 '찾으면 타일 +1'은 빼고 뽑는다
+function offerIds(ids,its,perm,spanLeft,rng){const ok=ids.filter(id=>!(its[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(pick(rng,ok.length),1)[0]);return r;}
+
+const api={PRIM,MIXC,ALL,isMix,CFG0,mulberry32,seedOf,randomSeed,streams,pick,result,clue,poolList,pw,draw1,STAGES,spec,makeGems,gemValue,tileCost,ITEMS0,items,USES,offerIds};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.Rules=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+
+</script>
+<script>
+// ---------- 개발자 모드 설정 (주소에 ?dev 한 번 붙이면 이 기기에서 계속 켜짐, ?dev=0 으로 끔) ----------
+// 기기 저장소: LS(키) 읽기, LS(키,값) 쓰기, LS(키,null) 지우기. 막힌 브라우저에서도 멈추지 않는다
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}return null;};
+const DEV=(()=>{const q=location.search;if(/[?&]dev=0/.test(q)){LS('ms2_dev',null);return false;}if(/[?&]dev\b/.test(q)){LS('ms2_dev','1');return true;}return LS('ms2_dev')==='1';})();
+const CFG0=Rules.CFG0;
+const CFG=(()=>{let c={};if(DEV)try{c=JSON.parse(LS('ms2_cfg')||'{}');}catch(e){}return Object.assign({},CFG0,c,{items:Object.assign({},c.items||{})});})();
 const FILL={1:'#E0312B',2:'#F2C12E',4:'#2A6FDB',3:'#F07F1A',6:'#2E9E4F',5:'#8E44AD'},INK={1:'#FFFFFF',2:'#000000',4:'#FFFFFF',3:'#000000',6:'#FFFFFF',5:'#FFFFFF'};
-const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},PRIM=[1,2,4],MIXC=[3,6,5],ALL=[1,2,4,3,6,5];
-const $=id=>document.getElementById(id),ri=n=>Math.floor(Math.random()*n),K=(x,y)=>x+','+y,LIFT=44;
-const isMix=c=>MIXC.includes(c),price=c=>isMix(c)?CFG.gemM:CFG.gemP;
+const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},{PRIM,MIXC,ALL,isMix,result}=Rules;
+const $=id=>document.getElementById(id),K=(x,y)=>x+','+y,LIFT=44;
 function gem(cx,cy,w,fill,stroke,sw,op){const h=w*0.82,t=cy-h*0.45,m=cy-h*0.12,b=cy+h*0.55,a=w*0.5,c=w*0.28,d=w*0.14;const P=(x,y)=>`${(cx+x).toFixed(3)},${y.toFixed(3)}`;
  return `<g opacity="${op==null?1:op}"><polygon points="${[P(-c,t),P(c,t),P(a,m),P(0,b),P(-a,m)].join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M${P(-a,m)}L${P(a,m)}M${P(-c,t)}L${P(-d,m)}L${P(0,b)}M${P(c,t)}L${P(d,m)}L${P(0,b)}M${P(-d,m)}L${P(0,t)}L${P(d,m)}" fill="none" stroke="${stroke}" stroke-width="${sw*0.6}" stroke-linejoin="round" opacity="0.7"/></g>`;}
 const dia=(x,y,i)=>`${x+0.5},${y+i} ${x+1-i},${y+0.5} ${x+0.5},${y+1-i} ${x+i},${y+0.5}`;
@@ -553,8 +644,7 @@ const IC={
  tap:sv('<circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="12" r="7.5" opacity="0.6"/>'),
  gemW:sv(G24(12,12.5,20,'#FFFFFF','rgba(0,0,0,0.5)')),
  spark:sv('<path d="M12 2l2 6.5L20.5 10 14 12l-2 7-2-7-6.5-2L10 8.5z" fill="#F2C12E" stroke="#C79A00" stroke-width="1.2"/>'),
- retry:sv('<path d="M4 12a8 8 0 1 0 2.5-5.8L4 8.5"/><path d="M4 3.5v5h5"/>'),
- eye:sv('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>')};
+ retry:sv('<path d="M4 12a8 8 0 1 0 2.5-5.8L4 8.5"/><path d="M4 3.5v5h5"/>')};
 const ITEM_IC={
  pick:sv(D24(12,12,10,'none','currentColor')+'<circle cx="12" cy="8.5" r="2.6" fill="#E0312B" stroke="none"/><circle cx="9" cy="13.5" r="2.6" fill="#F2C12E" stroke="none"/><circle cx="15" cy="13.5" r="2.6" fill="#2A6FDB" stroke="none"/>'),
  peek:sv(D24(8,14,6.5,'#2E9E4F')+'<path d="M11 9s2.4-4.5 6.2-4.5S23 9 23 9s-2 4.5-5.8 4.5S11 9 11 9z" fill="var(--bg)"/><circle cx="17" cy="9" r="1.8" fill="currentColor"/>'),
@@ -569,13 +659,12 @@ const ITEM_IC={
  double:sv(G24(8,10,12,'#8E44AD')+G24(15,15,12,'#8E44AD')),
  probe:sv('<circle cx="10" cy="10" r="6.5"/>'+G24(10,10.5,7,'#E0312B')+'<path d="M15 15l6 6" stroke-width="2.6"/>')};
 const KIC={hold:IC.bag,next:sv('<path d="M4 12h9"/><path d="M10 8l4 4-4 4"/><text x="19" y="16.5" font-size="11" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">1</text>'),span:sv('<path d="M4 12h9"/><path d="M10 8l4 4-4 4"/><text x="19" y="16.5" font-size="11" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">5</text>'),perm:IC.inf};
-let miniTile=(c,v,sz)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}"><polygon points="${dia(0,0,0.02)}" fill="${FILL[c]}"/>${[['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]].map(([k,dx,dy])=>`<text x="${0.5+dx*0.27}" y="${0.5+dy*0.27}" font-size="0.23" fill="${INK[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${v[k]}</text>`).join('')}</svg>`;
 let gemSvg=(c,sz,filled)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}">${filled===false?gem(0.5,0.52,0.88,'none',FILL[c],0.08):gem(0.5,0.52,0.9,FILL[c],'#FFFFFF',0.05)}</svg>`;
 const big=(h)=>`<div class="tBig">${h}</div>`;
 
 // ---------- 레트로 옷 (?skin=a 밤 미로, ?skin=b 흙 마당) · 시험용 ----------
-const SKIN_Q=(location.search.match(/[?&]skin=([ab]?)/i)||[])[1];if(DEV&&SKIN_Q!==undefined){try{if(SKIN_Q)localStorage.setItem('ms2_skin',SKIN_Q.toLowerCase());else localStorage.removeItem('ms2_skin');}catch(e){}}
-const SKIN=(SKIN_Q||(DEV&&(()=>{try{return localStorage.getItem('ms2_skin')}catch(e){return ''}})())||'').toLowerCase();
+const SKIN_Q=(location.search.match(/[?&]skin=([ab]?)/i)||[])[1];if(DEV&&SKIN_Q!==undefined)LS('ms2_skin',SKIN_Q?SKIN_Q.toLowerCase():null);
+const SKIN=(SKIN_Q||(DEV&&LS('ms2_skin'))||'').toLowerCase();
 const SK=SKIN?(function(theme){
  const PC=34,K2=PC/26;
  const LIGHT={1:'#FF8A7A',2:'#FFF08A',4:'#86B4FF',3:'#FFC071',6:'#86E39C',5:'#D193EC'},MIDL={1:'#F45E50',2:'#FFDC5C',4:'#5690F0',3:'#F9A24A',6:'#56C674',5:'#B26AD2'};
@@ -673,7 +762,6 @@ if(SK){(function(){
  ITEM_IC.probe=img('prb',16,16,x=>{map(x,0,0,['..ooooo...','.o.....o..','o.......o.','o.......o.','o.......o.','o.......o.','o.......o.','.o.....o..','..ooooo...'],{o:W});gemAt(x,1,1,1,'full');line(x,8,8,14,14,W);line(x,9,8,15,14,W);});
  // 보석·타일 그림 바꾸기
  gemSvg=(c,sz,filled)=>`<img class="px" src="${gemURL(c,filled===false?'empty':'full')}" width="${sz}" height="${Math.round(sz*8/9)}" alt="">`;
- miniTile=(c,v,sz)=>`<img class="px" src="${tileURL(c,[v.u,v.d,v.l,v.r])}" width="${sz}" height="${sz}" alt="">`;
  SK.tileImg=(c,sz)=>`<img class="px" src="${tileURL(c,null)}" width="${sz}" height="${sz}" alt="">`;
  // 가이드 그림
  SK.guide=function(){
@@ -690,7 +778,7 @@ if(SK){(function(){
   document.querySelectorAll('#guide .gMix .sq').forEach((q,i)=>{q.outerHTML=SK.tileImg([1,2,3][i],22);});};
 })();}
 // ---------- 효과음 (코드로 만든 레트로 소리 · 시험용) ----------
-const SFX=(()=>{let ctx=null,muted=false;try{muted=localStorage.getItem('ms2_mute')==='1';}catch(e){}
+const SFX=(()=>{let ctx=null,muted=LS('ms2_mute')==='1';
  const AC=window.AudioContext||window.webkitAudioContext;
  const unlock=()=>{if(!AC)return;if(!ctx)ctx=new AC();if(ctx.state==='suspended')ctx.resume();};
  for(const ev of ['pointerdown','pointerup','touchend','click'])document.addEventListener(ev,unlock,{capture:true});
@@ -713,53 +801,26 @@ const SFX=(()=>{let ctx=null,muted=false;try{muted=localStorage.getItem('ms2_mut
   lose(){[523,440,349,262].forEach((f,i)=>tone(f,0.18,'square',0.1,i*0.16));},
   tap(){tone(880,0.025,'square',0.05);},
   get muted(){return muted;},
-  toggle(){muted=!muted;try{localStorage.setItem('ms2_mute',muted?'1':'0');}catch(e){}unlock();if(!muted)this.tap();return muted;}};})();
+  toggle(){muted=!muted;LS('ms2_mute',muted?'1':'0');unlock();if(!muted)this.tap();return muted;}};})();
 
 // ---------- 스테이지표 ----------
-const STAGES=[
- {c:[1],n:1,tag:'시작'},{c:[1],n:2,tag:'보석이 하나 늘어남'},
- {c:[1,2],n:2,nc:2,tag:'새 색 노랑'},{c:[1,2],n:3,tag:'보석이 하나 늘어남'},{c:[1,2],n:3,tag:'같은 수준, 다른 판'},
- {c:[1,2,4],n:3,nc:4,tag:'새 색 파랑'},{c:[1,2,4],n:4,tag:'보석이 하나 늘어남'},{c:[1,2,4],n:3,tag:'쉬어 가는 스테이지'},
- {c:[3],n:2,nc:3,tag:'새 색 주황 · 주황 보석만'},{c:[1,2,4,3],n:4,m:1,tag:'색이 하나 늘어남'},{c:[1,2,4,3],n:4,m:1,tag:'같은 수준, 다른 판'},{c:[1,2,4,3],n:5,m:1,tag:'보석이 하나 늘어남'},{c:[1,2,4,3],n:4,tag:'쉬어 가는 스테이지'},
- {c:[6],n:2,nc:6,tag:'새 색 초록 · 초록 보석만'},{c:[1,2,4,6],n:5,m:1,tag:'색이 하나 늘어남'},{c:[1,3,4,6],n:5,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,6],n:4,m:1,tag:'쉬어 가는 스테이지'},
- {c:[5],n:2,nc:5,tag:'새 색 보라 · 보라 보석만'},{c:[1,2,4,5],n:5,m:1,tag:'색이 하나 늘어남'},{c:[3,6,5],n:5,tag:'섞은 색 보석만'},{c:[1,3,6,5],n:6,m:2,tag:'섞은 색 보석이 늘어남'},{c:[1,2,4,3],n:5,m:1,tag:'쉬어 가는 스테이지'},
- {c:[2,3,6,5],n:7,m:2,tag:'보석이 하나 늘어남'},{c:[3,6,5],n:6,tag:'섞은 색 보석만'},{c:[2,4,6,3],n:8,m:3,tag:'보석이 늘어남'},{c:[1,2,4,5],n:6,m:2,tag:'쉬어 가는 스테이지'}];
-const specCache={};function spec(z){if(specCache[z])return specCache[z];const r=spec0(z);specCache[z]=r;return r;}
-function spec0(z){if(z<=STAGES.length){const t=STAGES[z-1];return {c:t.c,n:t.n,nc:t.nc||0,m:t.m||0,tag:t.tag};}
- const k=z-STAGES.length,cy=Math.floor((k-1)/4),pos=(k-1)%4,n=Math.min(10,6+cy+[1,1,2,0][pos]);
- if(pos===1&&cy%2===0)return {c:[3,6,5],n:Math.min(9,n),nc:0,m:0,tag:'섞은 색 보석만'};
- const pool=[...ALL];const c=[];while(c.length<4)c.push(pool.splice(ri(pool.length),1)[0]);
- return {c:ALL.filter(x=>c.includes(x)),n,nc:0,m:Math.min(n-1,2+cy+[0,1,1,0][pos]),tag:pos===3?'쉬어 가는 스테이지':'보석이 늘어남'};}
-const pw=z=>z<=10?1:z<=15?1.5:2;
+// 스테이지표와 27스테이지 뒤 규칙은 rules.js. 27부터의 색은 시드로 정해진다
+const specCache={};function spec(z){if(!specCache[z])specCache[z]=Rules.spec(z,seed);return specCache[z];}
 
 // ---------- 아이템 ----------
-const ITEMS={
- pick:{nm:'색 골라 받기',ds:'손의 타일 한 장을 원하는 색으로 바꾼다',p:1,k:'hold'},
- peek:{nm:'숫자 다시 보기',ds:'판의 타일을 눌러 다른 색 타일이었을 때의 숫자를 본다. 3칸까지',p:2,k:'next'},
- row:{nm:'줄 탐지',ds:'칸을 눌러 그 가로줄에 보석이 몇 개 있는지 본다(색과 상관없이, 1번)',p:3,k:'hold'},
- area:{nm:'색 탐지',ds:'한 색을 골라 그 색 보석 중 하나가 있는 3×3 범위를 표시한다(어느 보석인지는 무작위)',p:4,k:'hold'},
- freeov:{nm:'겹치기 공짜',ds:'타일 위에 겹쳐 놓아도 남은 타일이 줄지 않는다',p:3,k:'next'},
- value:{nm:'섞은 보석 값 +1',ds:'섞은 색 보석을 팔 때 1원씩 더 받는다',p:5,k:'perm'},
- bonus:{nm:'찾으면 타일 +1',ds:'앞으로 5스테이지 동안 보석을 찾으면 타일을 1개 더 받는다',p:8,k:'span'},
- hand4:{nm:'네 번째 손',ds:'손에 드는 타일이 4장이 된다',p:10,k:'perm'},
- lucky:{nm:'행운의 손',ds:'남은 보석 색 타일이 두 배 자주 나온다',p:2,k:'next'},
- small:{nm:'좁은 판',ds:'판이 6×6이 된다',p:7,k:'next'},
- double:{nm:'보석 두 배 스테이지',ds:'보석이 2개 더 나오고, 보석의 기본값이 두 배가 된다',p:1,k:'next'},
- probe:{nm:'탐지기 3회',ds:'칸을 눌러 그 칸에 보석이 있는지 본다(3번)',p:5,k:'hold'}};
+const ITEMS=Rules.items();
 for(const k in ITEMS)ITEMS[k].p0=ITEMS[k].p;for(const k in CFG.items)if(ITEMS[k])ITEMS[k].p=CFG.items[k];
-const KTAG={hold:'가방',next:'다음 스테이지',perm:'계속',span:'5스테이지'};
 
 // ---------- 상태 ----------
 let nudge=false;
+// seed: 이번 게임의 시드. RS: 이번 스테이지의 난수기(보석·손·진열·아이템). seedNext: 다음 새 게임에 쓸 시드(주소 ?seed= 또는 개발자 모드)
+let seed=Rules.randomSeed(),RS=Rules.streams(seed,1),seedNext=null,pendTile=0;
+{const m=location.search.match(/[?&]seed=(\d+)/);if(m)seedNext=(+m[1])>>>0;}
 let tainted=false,firstSeen={},areaMarks=[],zoneStart=null,peeked={},peekPick=null,peekView=null,badCell=null,G=7,zone=1,tiles=10,money=0,best=0,gems=[],cell={},hand=[0,0,0],hs=0,HN=3,phase='play',drag=null,target=null,selCell=null,reveal=false,armed=null;
 let bag=[],perm={},spanLeft=0,nextFx={},fx={},marks={},rowMarks={},mode=null,collected=false,collecting=false,shop=null,flash=[],vanish=[];
-try{best=+(localStorage.getItem('ms2_best')||0)}catch(e){}
+best=+(LS('ms2_best')||0);
 const live=()=>gems.filter(g=>!g.f),done=()=>gems.filter(g=>g.f);
-function clue(x,y,t){const L=live().filter(g=>g.c===t);return{l:L.filter(g=>g.x<x).length,r:L.filter(g=>g.x>x).length,u:L.filter(g=>g.y<y).length,d:L.filter(g=>g.y>y).length};}
-function poolList(){const S=new Set();for(const g of live()){S.add(g.c);if(isMix(g.c))for(const p of PRIM)if(g.c&p)S.add(p);}return [...S];}
-function draw1(){const cs=poolList();if(!cs.length)return 0;const gc=new Set(live().map(g=>g.c));
- const w=cs.map(c=>(PRIM.includes(c)&&!gc.has(c)?pw(zone):1)*(fx.lucky&&gc.has(c)?2:1));const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(let i=0;i<cs.length;i++){r-=w[i];if(r<0)return cs[i];}return cs[cs.length-1];}
-function result(t,h){if(t&h)return 0;const u=t|h;return u===7?0:u;}
+const clue=(x,y,t)=>Rules.clue(live(),x,y,t),poolList=()=>Rules.poolList(live()),draw1=()=>Rules.draw1(live(),zone,!!fx.lucky,RS.hand);
 
 // ---------- 그리기 ----------
 function tileSvg(x,y,t,ring){if(!ring&&gems.length&&!gems.some(g=>g.c===t))return `<g opacity="0.5">${tileSvg0(x,y,t,ring)}</g>`;return tileSvg0(x,y,t,ring);}
@@ -801,7 +862,7 @@ function draw(){
  $('root').classList.toggle('nudge',nudge&&phase==='play'&&zone===1);
  // 위 정보
  if(!$('tileNum'))$('stat').innerHTML=`<span class="lbTut" id="lbTut">연습</span><span class="st">${IC.zone}<b id="zoneNum"></b></span><span class="st">${IC.tile}<b id="tileNum"></b></span><span class="st">${IC.coin}<b id="moneyNum"></b></span><span class="st muted">${IC.best}<span id="bestNum"></span></span>`;
- $('lbTut').style.display=TUT.on?'inline-block':'none';const tn=$('tileNum');if(tn.textContent!==String(tiles))tn.textContent=tiles;tn.classList.toggle('low',phase==='play'&&tiles<=3);if($('zoneNum').textContent!==String(zone))$('zoneNum').textContent=zone;if($('moneyNum').textContent!==String(money))$('moneyNum').textContent=money;if($('bestNum').textContent!==String(best))$('bestNum').textContent=best;
+ $('lbTut').style.display=TUT.on?'inline-block':'none';const tn=$('tileNum'),tv=String(tiles-pendTile);if(tn.textContent!==tv)tn.textContent=tv;tn.classList.toggle('low',phase==='play'&&tiles<=3);if($('zoneNum').textContent!==String(zone))$('zoneNum').textContent=zone;if($('moneyNum').textContent!==String(money))$('moneyNum').textContent=money;if($('bestNum').textContent!==String(best))$('bestNum').textContent=best;
  const order=[...gems].sort((a,b)=>ALL.indexOf(a.c)-ALL.indexOf(b.c)||(b.f-a.f));
  $('gemRow').innerHTML=order.map(g=>SK?SK.gemImg(g.c,g.f):`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.9,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.88,'none',FILL[g.c],0.08)}</svg>`).join('')+`<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span>`+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#gemRow .tutQuit').forEach(b=>b.onclick=tutQuit);
  // 손
@@ -825,50 +886,54 @@ let toastT=0;function toast(t,ms){const e=$('toast');e.innerHTML=t;e.classList.a
 function toastOff(){clearTimeout(toastT);$('toast').classList.remove('show');}
 
 // ---------- 스테이지 ----------
-function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.min(sp.n+(fx.double?2:0),G*G-1);
- const P=sp.c,MX=P.filter(isMix),used=new Set();gems=[];
- while(gems.length<n){const x=ri(G),y=ri(G);if(used.has(K(x,y)))continue;used.add(K(x,y));gems.push({x,y,c:(gems.length===0&&sp.nc)?sp.nc:P[ri(P.length)],f:false,lock:gems.length===0&&!!sp.nc});}
- if(MX.length){let cnt=gems.filter(g=>isMix(g.c)).length;const cand=gems.filter(g=>!g.lock&&PRIM.includes(g.c));while(cnt<sp.m&&cand.length){cand.splice(ri(cand.length),1)[0].c=MX[ri(MX.length)];cnt++;}}
- if(fixedGems)gems=fixedGems.map(g=>({x:g.x,y:g.y,c:g.c,f:false}));
+function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;RS=Rules.streams(seed,zone);pendTile=0;
+ gems=fixedGems?fixedGems.map(g=>({x:g.x,y:g.y,c:g.c,f:false})):Rules.makeGems(sp,G,fx.double?2:0,RS.gem);
  setTimeout(()=>PLOG.stage(),0);zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,runGems,runMoney,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
  cell={};marks={};rowMarks={};areaMarks=[];selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
  HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=null;
  $('root').classList.remove('lost');draw();fit();setTimeout(tutZoneStart,0);{let t=big(IC.zone+zone);if(sp.nc){t+=big(IC.spark+gemSvg(sp.nc,40));if(isMix(sp.nc)){const p=PRIM.filter(q=>sp.nc&q);t+=big(tileIco(p[0],34)+'<span class="plus">+</span>'+tileIco(p[1],34)+'<span class="plus">=</span>'+tileIco(sp.nc,34));}}toast(t,sp.nc?3200:2400);}}
 function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;runGems=z.runGems||0;runMoney=z.runMoney||0;startZone(z.gems);}
-function newGame(){for(const k in specCache)delete specCache[k];firstSeen={};tainted=DEV&&cfgDiffTxt()!=='';runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone(nextGems(1));}
+function newGame(sd){seed=sd!=null?sd>>>0:Rules.randomSeed();for(const k in specCache)delete specCache[k];firstSeen={};tainted=DEV&&cfgDiffTxt()!==''||sd!=null;runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone(nextGems(1));}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMarks=[];mode=null;
   tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting){SFX.clear();}if(phase==='clear'&&!collecting)toast(`<div class="tClear">스테이지 클리어!</div>`+big(IC.zone+zone+IC.check),0);},foundG?1600:300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
-function lose(){phase='lost';TUT.clearNow();SFX.lose();saveRun();PLOG.end();const newBest=!tainted&&!TUT.on&&zone>best;if(newBest){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
+function lose(){phase='lost';TUT.clearNow();SFX.lose();saveRun();PLOG.end();const newBest=!tainted&&!TUT.on&&zone>best;if(newBest){best=zone;LS('ms2_best',String(best));}draw();
  const bw=$('boardWrap');bw.classList.remove('shake');void bw.offsetWidth;bw.classList.add('shake');
  setTimeout(()=>{if(phase!=='lost')return;$('loseBar').innerHTML=`<div class="lbTitle">GAME OVER</div><div class="lbRow"><span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.gemW}<b>${runGems}</b></span><span class="st">${IC.coin}<b>${runMoney}</b></span><span class="st${newBest?' newBest':''}">${IC.best}<b>${best}</b>${newBest?'<em>새 기록!</em>':''}</span></div><div class="lbBtns"><button id="retry2" class="primary">${IC.retry}<span>다시 하기</span></button><button id="toTitle2">${IC.next}<span>처음 화면</span></button></div>`;$('root').classList.add('lost');$('retry2').onclick=()=>startRun(TUT.on);$('toTitle2').onclick=showTitle;if(newBest)SFX.clear();fit();},700);}
 function spendTile(n){const b=tiles;tiles-=n;if(tiles>0&&tiles<=3&&tiles<b){SFX.warn();}}
 function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force&&c.color&&hand[i]!==c.color){bad(x,y);return;}if(c&&c.action&&c.force)TUT.finish(c.id);}if(nudge)nudge=false;const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
- if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
+ if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];findFx(x,y,add);}
  else{if(!(t&&fx.freeov))spendTile(1);if(nt)cell[k]=nt;else delete cell[k];if(nt&&!gems.some(g=>g.c===nt)){const mb=$('mixBtn');mb.classList.remove('pulse');void mb.offsetWidth;mb.classList.add('pulse');}}
  logPlace(h,x,y,t,nt,!!(g&&g.f));if(g&&g.f)SFX.find(nt);else if(!t)SFX.place();else if(nt)SFX.mix();else SFX.empty();hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
+// 판의 칸이 화면에서 차지하는 자리(판 여백까지 계산)
+function cellRect(x,y){const f=$('fld').getBoundingClientRect(),m=SK?SK.margin:0.1,u=f.width/(G+m*2);return {left:f.left+(x+m)*u,top:f.top+(y+m)*u,width:u,height:u};}
+function findFx(x,y,add){pendTile+=add;const root=$('root'),rr=root.getBoundingClientRect(),c=cellRect(x,y),cx=c.left+c.width/2-rr.left,cy=c.top+c.height/2-rr.top;
+ const ring=document.createElement('div');ring.className='findRing';ring.style.cssText=`left:${cx-c.width/2}px;top:${cy-c.height/2}px;width:${c.width}px;height:${c.height}px`;ring.innerHTML='<svg viewBox="0 0 1 1" width="100%" height="100%"><polygon points="0.5,0.03 0.97,0.5 0.5,0.97 0.03,0.5" fill="none" stroke="#FFFFFF" stroke-width="0.07"/></svg>';root.appendChild(ring);setTimeout(()=>ring.remove(),760);
+ const w=Math.min(36,c.width*0.62),f=document.createElement('div');f.className='fly flyTile';f.style.cssText=`width:${w}px;height:${w}px;left:${cx-w/2}px;top:${cy-w/2}px`;f.innerHTML=IC.tile;root.appendChild(f);
+ setTimeout(()=>{const tr=$('tileNum').getBoundingClientRect(),tx=tr.left+tr.width/2-rr.left,ty=tr.top+tr.height/2-rr.top;f.style.transform=`translate(${tx-cx}px,${ty-cy}px) scale(0.6)`;f.style.opacity='0.9';},260);
+ setTimeout(()=>{f.remove();pendTile=Math.max(0,pendTile-add);draw();const n=$('tileNum');if(!n)return;n.classList.remove('bump');void n.offsetWidth;n.classList.add('bump');const r=n.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+add;p.style.left=(r.right+2)+'px';p.style.top=(r.top-6)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);},780);}
 function bad(x,y){SFX.bad();badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
 function eraseAt(x,y){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const cs=TUT.step();if(cs&&cs.erase&&cell[K(x,y)])TUT.finish(cs.id);}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];spendTile(1);PLOG.mv(`E 지우개(${x+1},${y+1}) 타일${tiles}`);SFX.erase();afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
 function collect(){if(collecting||collected)return;collecting=true;TUT.finish('sell');toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
  const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;PLOG.clear(earned);draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();if(spanLeft)spanLeft--;if(TUT.on&&zone===3)tutEnd();else openShop();},2200);},420);return;}
-  const g=list[i++],v=price(g.c)*(fx.double?2:1)+(perm.value&&isMix(g.c)?1:0);earned+=v;
-  const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
+  const g=list[i++],v=Rules.gemValue(g.c,CFG,!!fx.double,!!perm.value);earned+=v;
+  const cr=cellRect(g.x,g.y),u=cr.width,sx=cr.left+u/2-rr.left,sy=cr.top+u/2-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
   g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=SK?gemSvg(g.c,w):`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(0.35)`;f.style.opacity='0.9';}));
   setTimeout(()=>{f.remove();money+=v;runMoney+=v;SFX.coin();draw();const n=$('moneyNum');n.classList.remove('bump');void n.offsetWidth;n.classList.add('bump');},520);setTimeout(step,260);};
  step();}
 
 // ---------- 상점 ----------
-function offerList(){{const f=tutShopFix();if(f)return f.items.slice();}const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
+function offerList(){{const f=tutShopFix();if(f)return f.items.slice();}return Rules.offerIds(Object.keys(ITEMS),ITEMS,perm,spanLeft,RS.shop);}
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');tutShop();}
 const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'게임 끝까지 계속',span:'5스테이지 동안'};
-function tileCost(z){return CFG.shopCost+Math.floor((Math.max(1,z)-1)/Math.max(1,CFG.shopStep))*CFG.shopInc;}
+function tileCost(z){return Rules.tileCost(z,CFG);}
 function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1);
  $('shopTiles').innerHTML=`<span class="lb">남은 타일</span>${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`<span class="lb">돈</span>${IC.coin}<b>${money}</b><span class="lb">원</span>`;
  $('shopNext').innerHTML=`<span class="lb">다음</span><span class="st">${IC.zone}<b>${zone+1}</b></span><span class="lb">스테이지</span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="lb">보석 <b>${nx.n}</b>개${nextFx.double?'<b>(+2)</b>':''}</span>${nextFx.double?'<span class="lb">값 ×2</span>':''}${nextFx.small?'<span class="lb">6×6</span>':''}${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}<span class="lb">새 색</span></span>`:''}`;
@@ -881,7 +946,7 @@ function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1)
  const own=[...bag.map(b=>[b.id,'가방']),...Object.keys(nextFx).map(k=>[k,'다음 스테이지']),...Object.keys(perm).map(k=>[k,KTAG2.perm]),...(spanLeft?[['bonus',spanLeft+'스테이지 남음']]:[])];
  $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>')+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#shopBag .tutQuit').forEach(b=>b.onclick=tutQuit);}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;{const f=tutShopFix();if(f&&id!==f.must)return;}TUT.finish('sh_buy');TUT.finish('sh2_buy');PLOG.shop(`${it.nm}(${it.p}원)`);money-=it.p;shop.bought=i;
- if(it.k==='hold')bag.push({id,uses:id==='probe'?3:id==='row'?1:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=5;const card=document.querySelectorAll('#shopItems .item')[i];const from=card&&card.querySelector('.iIc').getBoundingClientRect();renderShop();shopBought(i,id,from);}
+ if(it.k==='hold')bag.push({id,uses:Rules.USES[id]||0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=5;const card=document.querySelectorAll('#shopItems .item')[i];const from=card&&card.querySelector('.iIc').getBoundingClientRect();renderShop();shopBought(i,id,from);}
 function shopFlash(t){let e=$('shopToast');if(!e){e=document.createElement('div');e.id='shopToast';$('shop').appendChild(e);}e.innerHTML=t;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1300);}
 function shopBought(i,id,from){SFX.buy();const card=document.querySelectorAll('#shopItems .item')[i];if(card){card.classList.add('justBought');}shopFlash(`${ITEM_IC[id]}<b>${ITEMS[id].nm}</b><span>구입!</span>`);
  const own=[...document.querySelectorAll('#shopBag .own')].pop();if(from&&own){const to=own.getBoundingClientRect(),f=document.createElement('div');f.className='flyItem';f.innerHTML=ITEM_IC[id];f.style.cssText=`left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px`;document.body.appendChild(f);
@@ -898,7 +963,7 @@ function longPress(el,onTap,onLong){el.onpointerdown=e=>{lpFired=false;clearTime
 function tapBag(i){const it=bag[i];if(!it)return;if(!firstSeen[it.id]){firstSeen[it.id]=1;itemPop({id:it.id,idx:i});return;}if(it.id==='probe'||it.id==='row'){if(mode===it.id){mode=null;draw();return;}armed=null;peekPick=null;peekView=null;mode=it.id;draw();return;}useBag(i);}
 function useBag(i){const it=bag[i];if(phase!=='play')return;armed=null;mode=null;PLOG.mv(`I ${ITEMS[it.id].nm} 꺼냄`);peekPick=null;peekView=null;
  if(it.id==='pick')picker(ITEM_IC.pick,poolList().length?ALL.filter(c=>poolList().includes(c)):ALL,c=>{hand[hs]=c;bag.splice(i,1);draw();});
- else if(it.id==='area'){const cs=ALL.filter(c=>live().some(g=>g.c===c));picker(ITEM_IC.area,cs,c=>{const L=live().filter(g=>g.c===c),g=L[ri(L.length)];const x=Math.max(0,Math.min(G-3,g.x-ri(3))),y=Math.max(0,Math.min(G-3,g.y-ri(3)));areaMarks.push({x,y,c});bag.splice(i,1);draw();});}
+ else if(it.id==='area'){const cs=ALL.filter(c=>live().some(g=>g.c===c));picker(ITEM_IC.area,cs,c=>{const pk=n=>Rules.pick(RS.item,n),L=live().filter(g=>g.c===c),g=L[pk(L.length)];const x=Math.max(0,Math.min(G-3,g.x-pk(3))),y=Math.max(0,Math.min(G-3,g.y-pk(3)));areaMarks.push({x,y,c});bag.splice(i,1);draw();});}
  else if(it.id==='probe'||it.id==='row'){mode=it.id;draw();}else draw();}
 function boardTap(x,y){const k=K(x,y);
  if(mode==='probe'){const i=bag.findIndex(b=>b.id==='probe');if(i<0){mode=null;draw();return;}const inTut=TUT.active('s2_probe');TUT.finish('s2_probe');marks[k]=gems.some(g=>!g.f&&g.x===x&&g.y===y);PLOG.mv(`I 탐지(${x+1},${y+1}) ${marks[k]?'있음':'없음'}`);SFX.ping();bag[i].uses--;if(!bag[i].uses){bag.splice(i,1);mode=null;}if(inTut)mode=null;draw();return;}
@@ -911,7 +976,7 @@ function boardTap(x,y){const k=K(x,y);
 // ---------- 끌기 ----------
 function cellAt(cx,cy){const pt=$('fld').createSVGPoint();pt.x=cx;pt.y=cy;const p=pt.matrixTransform($('fld').getScreenCTM().inverse());if(p.x<0||p.y<0||p.x>=G||p.y>=G)return null;return {x:Math.floor(p.x),y:Math.floor(p.y)};}
 function moveGhost(e){const top=$('handRow').getBoundingClientRect().top;const lift=e.clientY>=top-4?0:LIFT;const r=$('root').getBoundingClientRect(),gh=$('ghost');const half=(gh.offsetWidth||60)/2;gh.style.left=(e.clientX-r.left-half)+'px';gh.style.top=(e.clientY-r.top-half-lift)+'px';
- if(!drag.mv&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>14)drag.mv=true;target=(drag.mv&&e.clientY<top)?cellAt(e.clientX,e.clientY-lift):null;draw();}
+ const mv0=drag.mv;if(!drag.mv&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>14)drag.mv=true;const nt=(drag.mv&&e.clientY<top)?cellAt(e.clientX,e.clientY-lift):null,ch=(nt?K(nt.x,nt.y):'')!==(target?K(target.x,target.y):'');target=nt;if(ch||mv0!==drag.mv)draw();}
 function startDrag(el,e,d,bgc,txt,inkc){if(phase!=='play')return;if(mode){mode=null;draw();}e.preventDefault();el.setPointerCapture(e.pointerId);drag={...d,sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background=SK?`url(${d.er?SK.eraserURL():SK.tileURL(d.c,null)}) center/100% 100% no-repeat`:bgc;if(SK)txt='';gh.style.color=inkc;gh.innerHTML=txt;moveGhost(e);}
 function nearEl(el,e){const r=el.getBoundingClientRect();return e.clientX>=r.left-24&&e.clientX<=r.right+24&&e.clientY>=r.top-24&&e.clientY<=r.bottom+24;}
 function endDrag(fn){if(!drag)return;const d=drag,t=target;drag=null;target=null;$('ghost').style.display='none';if(t)fn(d,t);else draw();}
@@ -933,7 +998,7 @@ const sq=c=>SK?SK.tileImg(c,34):`<span class="sq" style="background:${FILL[c]}">
 $('mix').innerHTML=[[1,2,3],[2,4,6],[1,4,5]].map(([a,b,r])=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`).join('');
 document.querySelectorAll('.pop').forEach(p=>p.addEventListener('click',e=>{if(e.target===p||e.target.closest('.popClose'))p.classList.remove('show');}));
 $('mixBtn').onclick=()=>$('mixPop').classList.add('show');
-// ---------- 가이드 세 쪽 ----------
+// ---------- 가이드 두 쪽 ----------
 const tileIco=(c,sz)=>SK?SK.tileImg(c,sz):`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}"><polygon points="${dia(0,0,0.04)}" fill="${FILL[c]}"/></svg>`;
 const eraserIco=sz=>SK?`<img class="px" src="${SK.eraserURL()}" width="${sz}" height="${sz}" alt="">`:`<span class="gEr" style="width:${sz}px;height:${sz}px">${IC.eraser}</span>`;
 let gPage=1;const G_PAGES=2;
@@ -980,7 +1045,7 @@ let gPage=1;const G_PAGES=2;
 function gShow(p){setTimeout(()=>fitFull($('guide')),0);gPage=Math.max(1,Math.min(G_PAGES,p));document.querySelectorAll('#guide .gPage').forEach(e=>e.hidden=+e.dataset.p!==gPage);
  $('gDots').innerHTML=Array.from({length:G_PAGES},(_,i)=>`<i class="${i+1===gPage?'on':''}"></i>`).join('');$('gPrev').style.visibility=gPage>1?'visible':'hidden';
  $('gNext').textContent=gPage<G_PAGES?'다음':'시작하기';$('guide').scrollTop=0;}
-function guideDone(){$('guide').classList.remove('show');try{localStorage.setItem('ms2_guide','1')}catch(e){}}
+function guideDone(){$('guide').classList.remove('show');}
 $('gPrev').onclick=()=>gShow(gPage-1);$('gNext').onclick=()=>{if(gPage<G_PAGES)gShow(gPage+1);else guideDone();};$('gSkip').onclick=guideDone;
 // ---------- 튜토리얼 1스테이지: 같이 푸는 연습 판 ----------
 let tutMarks=[],tutForce=null,tutScript=false;
@@ -995,7 +1060,7 @@ function tutMarkSvg(){let s='';for(const m of tutMarks){
  else if(m.t==='candc')for(const [x,y] of m.cells)s+=`<rect x="${x+0.06}" y="${y+0.06}" width="0.88" height="0.88" rx="0.08" fill="${FILL[m.c]}" fill-opacity="0.5" stroke="#FFFFFF" stroke-width="0.05"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.42" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
  else if(m.t==='target'){const [x,y]=m.c;s+=`<polygon class="nudgeCell" points="${dia(x,y,0.02)}" fill="#F6C430" fill-opacity="0.3" stroke="#F6C430" stroke-width="0.08"/>`;}}
  return s;}
-const nb4=(v,k)=>`<b class="cNum">${v}</b>`;
+const nb4=v=>`<b class="cNum">${v}</b>`;
 function tutScriptStage1(){tutScript=true;const C=[3,3],B=[5,3],D=[3,1],F=[TUT_GEM.x,TUT_GEM.y];
  const st=(id,o)=>Object.assign({id:'s1_'+id},o);
  const steps=[
@@ -1070,10 +1135,10 @@ function tutShop2(){if(!TUT.seen('sh2_buy'))money=Math.max(money,0)+4;renderShop
  S('sh2_buy',{action:true,target:'#shopItems .item:first-child',text:'이번엔 <b>다음 스테이지에서만</b> 효과가 나는<br><b>겹치기 공짜</b>를 사 보세요. 연습이니 4원을 더 드렸어요'});
  S('sh2_go',{target:'shopGo',text:'다음 스테이지가 시작되면 저절로 켜져요.<br><b>다음 스테이지</b>를 눌러요'});}
 function tutQuit(){if(!confirm('튜토리얼을 끝내고 처음 화면으로 갈까요?'))return;TUT.reset();TUT.on=false;tutApplyStep(null);$('shop').classList.remove('show');showTitle();}
-function tutDoneGo(){try{localStorage.setItem('ms2_tutdone','1');}catch(e){}TUT.on=false;tutApplyStep(null);showTitle();}
+function tutDoneGo(){LS('ms2_tutdone','1');TUT.on=false;tutApplyStep(null);showTitle();}
 function tutEnd(){if(TUT.seen('end')){tutDoneGo();return;}TUT.want({id:'end',text:'<b>튜토리얼 끝!</b><br>연습에서 받은 타일·돈·아이템은 가져가지 않아요.<br>진짜 게임에서 남은 타일이 <b>3개 이하</b>면<br>숫자가 빨갛게 깜빡여요. 처음 화면으로 돌아가요',onDone:tutDoneGo},300);}
 // ---------- 아이템 이름표와 설명 창 ----------
-const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은값 +1',bonus:'찾으면 +1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'보석 두 배',probe:'탐지기'};
+const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은 값+1',bonus:'찾으면 타일+1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'보석 두 배',probe:'탐지기'};
 function itemPop(o){const it=ITEMS[o.id];let st='';
  if(o.idx!=null&&bag[o.idx]&&bag[o.idx].uses)st=`남은 횟수 ${bag[o.idx].uses}번`;
  if(o.id==='peek')st=`남은 칸 ${fx.peek}곳`;
@@ -1088,13 +1153,12 @@ function itemPop(o){const it=ITEMS[o.id];let st='';
  p.classList.add('show');$('ipClose').onclick=()=>p.classList.remove('show');
  if(use)$('ipUse').onclick=()=>{p.classList.remove('show');if(o.id==='peek'){armed=null;peekPick=null;peekView=null;mode='peek';draw();}else if(o.id==='probe'||o.id==='row'){armed=null;peekPick=null;peekView=null;mode=o.id;draw();}else useBag(o.idx);};}
 // ---------- 따라 하는 튜토리얼 (각 장면은 이 기기에서 한 번만) ----------
-const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')||'{}');}catch(e){}
- const save=()=>{try{localStorage.setItem('ms2_tut',JSON.stringify(done));}catch(e){}};
+const TUT=(()=>{let done={};
  let cur=null,queue=[],gen=0;const canShow=()=>phase!=='lost'&&!$('title').classList.contains('show')&&!$('records').classList.contains('show');
  const box=document.createElement('div');box.id='coach';box.innerHTML='<div id="coachHole"></div><div id="coachFinger"></div><div id="coachBub"><div id="coachTxt"></div><div id="coachBtns"><button id="coachOff">그만 보기</button><button id="coachOk" class="primary">알겠어요</button></div></div>';
  document.body.appendChild(box);
  const hole=$('coachHole'),bub=$('coachBub'),fing=$('coachFinger');fing.innerHTML=IC.tap;
- function rectOf(t){if(!t)return null;if(t.cell){const f=$('fld').getBoundingClientRect(),m=SK?SK.margin:0.1,u=f.width/(G+m*2);return {left:f.left+(t.cell[0]+m)*u,top:f.top+(t.cell[1]+m)*u,width:u,height:u};}
+ function rectOf(t){if(!t)return null;if(t.cell)return cellRect(t.cell[0],t.cell[1]);
   const e=typeof t==='string'?(/^[#.]|\s/.test(t)?document.querySelector(t):$(t)):t;if(!e||!e.offsetParent&&e.id!=='shop')return null;return e.getBoundingClientRect();}
  function place(){if(!cur)return;const r=rectOf(cur.target);const pad=6;
   if(r){hole.style.display='block';Object.assign(hole.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});}else hole.style.display='none';
@@ -1103,42 +1167,40 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
   if(!r)top=vh/2-bh/2;else if(r.top-pad-bh-14>8)top=r.top-pad-bh-14;else top=Math.min(vh-bh-8,r.top+r.height+pad+14);
   bub.style.top=top+'px';
   if(cur.finger){const a=rectOf(cur.finger[0]),b=rectOf(cur.finger[1]);if(a&&b){fing.style.display='block';fing.style.setProperty('--x0',(a.left+a.width/2-14)+'px');fing.style.setProperty('--y0',(a.top+a.height/2-14)+'px');fing.style.setProperty('--x1',(b.left+b.width/2-14)+'px');fing.style.setProperty('--y1',(b.top+b.height/2-14)+'px');}else fing.style.display='none';}else fing.style.display='none';}
- function show(st){if(st.skipIf&&st.skipIf()){done[st.id]=1;save();cur=null;next();return;}cur=st;tutApplyStep(st);$('coachTxt').innerHTML=st.text;$('coachOk').style.display=st.action?'none':'';box.classList.add('show');place();requestAnimationFrame(place);}
+ function show(st){if(st.skipIf&&st.skipIf()){done[st.id]=1;cur=null;next();return;}cur=st;tutApplyStep(st);$('coachTxt').innerHTML=st.text;$('coachOk').style.display=st.action?'none':'';box.classList.add('show');place();requestAnimationFrame(place);}
  function next(){box.classList.remove('show');cur=null;if(!canShow())queue=[];const n=queue.shift();if(!n)tutApplyStep(null);if(n){const g=gen;setTimeout(()=>{if(g!==gen)return;if(!canShow()){queue=[];tutApplyStep(null);return;}if(!done[n.id]||n.force)show(n);else next();},250);}}
- function finish(id){if(cur&&cur.id===id){done[id]=1;save();next();}else{queue=queue.filter(q=>q.id!==id);}}
- $('coachOk').onclick=e=>{e.stopPropagation();const f=cur&&cur.onDone;if(cur){done[cur.id]=1;save();}next();if(f)f();};
- $('coachOff').onclick=e=>{e.stopPropagation();const f=cur&&cur.onDone;done.all=1;save();queue=[];box.classList.remove('show');cur=null;tutApplyStep(null);if(f)f();};
- box.addEventListener('click',e=>{if(cur&&!cur.action&&e.target===box){const f=cur.onDone;done[cur.id]=1;save();next();if(f)f();}});
+ function finish(id){if(cur&&cur.id===id){done[id]=1;next();}else{queue=queue.filter(q=>q.id!==id);}}
+ $('coachOk').onclick=e=>{e.stopPropagation();const f=cur&&cur.onDone;if(cur){done[cur.id]=1;}next();if(f)f();};
+ $('coachOff').onclick=e=>{e.stopPropagation();const f=cur&&cur.onDone;done.all=1;queue=[];box.classList.remove('show');cur=null;tutApplyStep(null);if(f)f();};
+ box.addEventListener('click',e=>{if(cur&&!cur.action&&e.target===box){const f=cur.onDone;done[cur.id]=1;next();if(f)f();}});
  window.addEventListener('resize',place);
  return {
   on:false,
   tell(st,delay){if(TUT.on)TUT.want(st,delay);},
-  want(st,delay,asHint){if(!TUT.on&&!asHint)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}const g=gen;setTimeout(()=>{if(g!==gen||done.all||done[st.id]||!canShow())return;if(cur){queue.push(st);return;}show(st);},delay||0);},
+  want(st,delay){if(!TUT.on)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}const g=gen;setTimeout(()=>{if(g!==gen||done.all||done[st.id]||!canShow())return;if(cur){queue.push(st);return;}show(st);},delay||0);},
   clearNow(){gen++;queue=[];cur=null;box.classList.remove('show');tutMarks=[];tutForce=null;},
   finish,step:()=>cur,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
-  reset(){gen++;done={};save();queue=[];cur=null;box.classList.remove('show');tutScript=false;tutMarks=[];tutForce=null;},place};
+  reset(){gen++;done={};queue=[];cur=null;box.classList.remove('show');tutScript=false;tutMarks=[];tutForce=null;},place};
 })();
-const tileTxt=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
 function tutZoneStart(){tutHelp=false;tutScript=false;
  if(!TUT.on)return;if(zone===1&&!TUT.seen('s1_intro'))tutScriptStage1();else if(zone===2&&!TUT.seen('s2_intro'))tutScriptStage2();else if(zone===3&&!TUT.seen('s3_intro'))tutScriptStage3();}
 function tutPlaced(x,y,found){
- if(found){TUT.tell({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
- else if(!tutScript&&cell[K(x,y)])TUT.tell({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
+ if(found){TUT.tell({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}}
 function tutClear(){TUT.tell({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요',skipIf:()=>collecting||collected},1200);}
 function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}}
 // ---------- 플레이 기록 (기기에 최근 5판) ----------
-const PLOG=(()=>{const CLn={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};let runs=[];try{runs=JSON.parse(localStorage.getItem('ms2_logs')||'[]');}catch(e){}
- let run=null;const save=()=>{try{localStorage.setItem('ms2_logs',JSON.stringify(runs.slice(-5)));}catch(e){}};
- const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
+const nowTxt=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
+const PLOG=(()=>{const CLn={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};let runs=[];try{runs=JSON.parse(LS('ms2_logs')||'[]');}catch(e){}
+ let run=null;const save=()=>LS('ms2_logs',JSON.stringify(runs.slice(-5)));
  const st=()=>run&&run.s[run.s.length-1];
  return {CLn,
-  newRun(){run={d:now(),tut:TUT.on?1:0,cfg:(typeof cfgDiffTxt==='function'?cfgDiffTxt():''),s:[],end:''};runs.push(run);if(runs.length>5)runs=runs.slice(-5);save();},
+  newRun(){run={d:nowTxt(),seed,tut:TUT.on?1:0,cfg:(typeof cfgDiffTxt==='function'?cfgDiffTxt():''),s:[],end:''};runs.push(run);if(runs.length>5)runs=runs.slice(-5);save();},
   stage(){if(!run)return;run.s.push({z:zone,g:gems.map(g=>`${CLn[g.c]}(${g.x+1},${g.y+1})`).join(' '),t0:tiles,m0:money,fx:Object.keys(fx).filter(k=>fx[k]&&ITEMS[k]).map(k=>ITEMS[k].nm).join(','),mv:[],sh:[]});save();},
   mv(s){const x=st();if(!x)return;x.mv.push(s);save();},
   clear(earned){const x=st();if(!x)return;x.t1=tiles;x.earn=earned;save();},
   shop(s){const x=st();if(!x)return;x.sh.push(s);save();},
   end(){if(!run)return;run.end=`스테이지 ${zone}에서 끝(남은 타일 0)`;const x=st();if(x)x.t1=0;save();},
-  text(detail){if(!runs.length)return '';let o='';runs.forEach((r,ri)=>{o+=`\n■ 판 ${ri+1} · ${r.d}${r.tut?' · 튜토리얼':''}${r.cfg?' · 바꾼 값: '+r.cfg:''} · ${r.end||'진행 중'}\n`;
+  text(detail){if(!runs.length)return '';let o='';runs.forEach((r,ri)=>{o+=`\n■ 판 ${ri+1} · ${r.d}${r.seed!=null?' · 시드 '+r.seed:''}${r.tut?' · 튜토리얼':''}${r.cfg?' · 바꾼 값: '+r.cfg:''} · ${r.end||'진행 중'}\n`;
    for(const x of r.s){const n=x.mv.filter(m=>m[0]==='P').length,miss=x.mv.filter(m=>m[0]==='P'&&!m.includes('찾음')).length,er=x.mv.filter(m=>m[0]==='E').length,rf=x.mv.filter(m=>m[0]==='B').length;
     o+=`S${x.z} 보석 ${x.g} · 타일 ${x.t0}→${x.t1!=null?x.t1:'?'} · 놓기 ${n}(못 찾음 ${miss}) 지우개 ${er} 바꾸기 ${rf}${x.earn!=null?` · +${x.earn}원`:''}${x.fx?` · 효과 ${x.fx}`:''}${x.sh.length?` · 상점: ${x.sh.join(', ')}`:''}\n`;
     if(detail&&x.mv.length)o+=`  수: ${x.mv.map(m=>m.slice(2)).join(' / ')}\n`;}});return o;},
@@ -1148,20 +1210,20 @@ function logPlace(h,x,y,t,nt,found){const C=PLOG.CLn;let r=found?'찾음':!t?'�
 function cfgDiffTxt(){const a=[];for(const k in CFG0){if(k!=='items'&&CFG[k]!==CFG0[k])a.push(k+'='+CFG[k]);}for(const k in CFG.items)a.push(k+'='+CFG.items[k]);return a.join(' ');}
 // ---------- 시작 화면과 기록 ----------
 let runGems=0,runMoney=0;
-const loadRuns=()=>{try{return JSON.parse(localStorage.getItem('ms2_runs')||'[]');}catch(e){return [];}};
-function saveRun(){const r=loadRuns();const d=new Date(),p=n=>String(n).padStart(2,'0');r.push({d:`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,z:zone,g:runGems,m:runMoney,t:TUT.on?1:0,c:tainted?1:0});while(r.length>50)r.shift();try{localStorage.setItem('ms2_runs',JSON.stringify(r));}catch(e){}}
+const loadRuns=()=>{try{return JSON.parse(LS('ms2_runs')||'[]');}catch(e){return [];}};
+function saveRun(){const r=loadRuns();const d=new Date(),p=n=>String(n).padStart(2,'0');r.push({d:`${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`,z:zone,g:runGems,m:runMoney,t:TUT.on?1:0,c:tainted?1:0,s:seed});while(r.length>50)r.shift();LS('ms2_runs',JSON.stringify(r));}
 function titleArt(){const row=[1,2,4,3,6,5];return `<div class="tTiles">${row.map(c=>tileIco(c,34)).join('')}</div>`;}
 function fitFull(el){if(!el||!el.classList.contains('show'))return;const inner=el.firstElementChild;if(!inner)return;inner.style.zoom='';const H=el.clientHeight,h=inner.scrollHeight;if(h>H)inner.style.zoom=Math.max(0.8,(H-2)/h).toFixed(3);}
 function fitAll(){['shop','title','records','over','guide'].forEach(id=>fitFull($(id)));}
 window.addEventListener('resize',()=>setTimeout(fitAll,50));
 function showTitle(){$('root').classList.remove('lost');$('over').classList.remove('show');$('shop').classList.remove('show');$('records').classList.remove('show');toastOff();
- let tutDone=false;try{tutDone=localStorage.getItem('ms2_tutdone')==='1';}catch(e){}const played=loadRuns().length>0||tutDone;
+ const tutDone=LS('ms2_tutdone')==='1';const played=loadRuns().length>0||tutDone;
  $('title').innerHTML=`<div class="fIn center tIn">${titleArt()}<h1 class="tLogo">MIX<span>&amp;</span>SEEK</h1><div class="tBest">${IC.best}<span>최고 기록</span><b>${best?'스테이지 '+best:'없음'}</b></div>
   <div class="tBtns"><button id="tStart" class="${played?'primary':''}">${IC.play}<span>시작</span></button><button id="tTut" class="${played?'':'primary'}">${IC.tap}<span>튜토리얼</span></button><button id="tRec">${IC.best}<span>기록</span></button></div>
   ${played?'':'<p class="tHint">처음이라면 튜토리얼부터 해 보세요</p>'}</div>`;
  $('title').classList.add('show');fitFull($('title'));
  $('tStart').onclick=()=>startRun(false);$('tTut').onclick=()=>startRun(true);$('tRec').onclick=showRecords;}
-function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut||loadRuns().length===0;PLOG.newRun();newGame();}
+function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut||loadRuns().length===0;const sd=seedNext;seedNext=null;newGame(sd);PLOG.newRun();}
 function showRecords(){const r=loadRuns().slice().reverse(),clean=loadRuns().filter(x=>!x.c&&!x.t),top=clean.slice().sort((a,b)=>b.z-a.z||b.g-a.g).slice(0,3);
  $('records').innerHTML=`<div class="fIn rIn"><div class="rHead"><button id="rBack" aria-label="뒤로">${IC.next}</button><h2>기록</h2><span></span></div>
   <div class="rSum"><div>${IC.best}<span>최고 기록</span><b>${best?'스테이지 '+best:'없음'}</b></div><div>${IC.zone}<span>한 판 수</span><b>${clean.length}판</b></div></div>
@@ -1170,21 +1232,19 @@ function showRecords(){const r=loadRuns().slice().reverse(),clean=loadRuns().fil
  $('records').classList.add('show');fitFull($('records'));$('rBack').onclick=()=>$('records').classList.remove('show');}
 $('toTitle').onclick=showTitle;
 function guide(on){$('guide').classList.toggle('show',on);if(on)gShow(1);}
-if(SK)SK.guide();$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms2_guide','1')}catch(e){}};
+if(SK)SK.guide();$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>guide(false);
 
 
 
 // ---------- 개발자 모드 화면 ----------
 if(DEV){(function(){
- const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}};
  let notes=[];try{notes=JSON.parse(LS('ms2_notes')||'[]');}catch(e){}
  const saveNotes=()=>LS('ms2_notes',JSON.stringify(notes));
- const CL={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};
+ const CL=PLOG.CLn;
  const TAGS=['버그','어려움','쉬움','헷갈림','좋음','제안'];
  const LABELS=[['start','시작 타일'],['find','찾으면 받는 타일'],['shopCost','상점 타일 칸 처음 가격(원)'],['shopStep','가격이 오르는 간격(스테이지)'],['shopInc','한 번에 오르는 값(원)'],['shopGet','상점 타일 칸 개수'],['gemP','기본색 보석 값(원)'],['gemM','섞은 색 보석 값(원)'],['hand','손의 타일 수(3~4)'],['refCost','바꾸기 비용(타일)']];
  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
- const situ=()=>`스테이지 ${zone} · 타일 ${tiles} · 돈 ${money}원 · 보석 ${done().length}/${gems.length}`+(phase!=='play'?` · ${phase==='clear'?'클리어':phase==='lost'?'패배':phase}`:'')+($('shop').classList.contains('show')?' · 상점':'');
+ const situ=()=>`스테이지 ${zone} · 타일 ${tiles} · 돈 ${money}원 · 보석 ${done().length}/${gems.length}`+(phase!=='play'?` · ${phase==='clear'?'클리어':phase==='lost'?'패배':phase}`:'')+($('shop').classList.contains('show')?' · 상점':'')+` · 시드 ${seed}`;
  const boardSnap=()=>{const gs=gems.map(g=>`${CL[g.c]}(${g.x+1},${g.y+1})${g.f?'찾음':''}`).join(' ');const ts=Object.entries(cell).map(([k,t])=>{const [x,y]=k.split(',').map(Number);return `${CL[t]}(${x+1},${y+1})`;}).join(' ');const h=hand.slice(0,HN).map(c=>CL[c]||'-').join('');return `보석 ${gs} / 판의 타일 ${ts||'없음'} / 손 ${h}`+(bag.length?` / 가방 ${bag.map(b=>ITEMS[b.id].nm).join(',')}`:'');};
  const cfgDiff=()=>{const a=[];for(const [k,l] of LABELS)if(CFG[k]!==CFG0[k])a.push(`${l} ${CFG[k]}`);for(const k in CFG.items)a.push(`${ITEMS[k].nm} ${CFG.items[k]}원`);return a;};
  const skinNow=SKIN||'기본';
@@ -1204,6 +1264,8 @@ if(DEV){(function(){
   <section data-sec="set" hidden>
    <h4>바로 하기</h4>
    <div class="dvRow"><input type="number" id="dvZone" min="1" max="60" value="1"><button id="dvGo">이 스테이지로</button></div>
+   <div class="dvRow"><input type="number" id="dvSeed" min="0" max="4294967295"><button id="dvSeedGo">이 시드로 새 게임</button></div>
+   <div class="dvNote" id="dvSeedNow"></div>
    <div class="dvBtns"><button id="dvRestart">이 스테이지 처음부터</button><button id="dvNew">새 게임</button><button id="dvT5">타일 +5</button><button id="dvTm5">타일 −5</button><button id="dvM10">돈 +10</button><button id="dvShow">정답 보기</button><button id="dvShop">상점 열기</button></div>
    <h4>아이템 바로 받기</h4>
    <div class="dvBtns">${Object.keys(ITEMS).map(k=>`<button data-give="${k}">${ITEMS[k].nm}</button>`).join('')}</div>
@@ -1231,7 +1293,7 @@ if(DEV){(function(){
  const q=s=>el.querySelector(s),qa=s=>el.querySelectorAll(s);
  // 위 버튼
  const btn=document.createElement('button');btn.id='devBtn';btn.textContent='DEV';btn.setAttribute('aria-label','개발자 모드');document.body.appendChild(btn);
- const open=tab=>{$('dvSitu').textContent='지금: '+situ();renderList();tabTo(tab||'memo');el.classList.add('show');};
+ const open=tab=>{$('dvSitu').textContent='지금: '+situ();q('#dvSeed').value=seed;q('#dvSeedNow').textContent=`지금 게임의 시드 ${seed}. 같은 시드면 스테이지마다 보석 자리가 같고, 같은 수를 두면 손과 진열도 같습니다.`;renderList();tabTo(tab||'memo');el.classList.add('show');};
  btn.onclick=()=>open('memo');q('#dvClose').onclick=()=>el.classList.remove('show');
  function tabTo(t){qa('.dvTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));qa('section').forEach(s=>s.hidden=s.dataset.sec!==t);if(t==='send')renderOut();}
  qa('.dvTabs button').forEach(b=>b.onclick=()=>tabTo(b.dataset.tab));
@@ -1239,9 +1301,9 @@ if(DEV){(function(){
  const picked=new Set();qa('[data-tag]').forEach(b=>b.onclick=()=>{const t=b.dataset.tag;if(picked.has(t))picked.delete(t);else picked.add(t);b.classList.toggle('on',picked.has(t));});
  function renderList(){q('#dvList').innerHTML=notes.length?notes.map((n,i)=>`<div class="dvNoteItem"><div><b>${i+1}.</b> ${n.tags.length?`[${esc(n.tags.join(','))}] `:''}${esc(n.text)}<div class="dvMeta">${esc(n.time)} · ${esc(n.situ)}</div></div><button data-del="${i}" aria-label="지우기">${IC.close}</button></div>`).join(''):'<div class="dvNote">아직 적은 메모가 없습니다.</div>';
   qa('[data-del]').forEach(b=>b.onclick=()=>{notes.splice(+b.dataset.del,1);saveNotes();renderList();});}
- q('#dvAdd').onclick=()=>{const t=q('#dvText').value.trim();if(!t&&!picked.size)return;notes.push({time:now(),situ:situ(),skin:skinNow,tags:[...picked],text:t,snap:q('#dvSnap').checked?boardSnap():''});saveNotes();q('#dvText').value='';picked.clear();qa('[data-tag]').forEach(b=>b.classList.remove('on'));renderList();toastDev('메모를 적었습니다');};
+ q('#dvAdd').onclick=()=>{const t=q('#dvText').value.trim();if(!t&&!picked.size)return;notes.push({time:nowTxt(),situ:situ(),skin:skinNow,tags:[...picked],text:t,snap:q('#dvSnap').checked?boardSnap():''});saveNotes();q('#dvText').value='';picked.clear();qa('[data-tag]').forEach(b=>b.classList.remove('on'));renderList();toastDev('메모를 적었습니다');};
  // 보내기
- function outText(){const d=cfgDiff();let s=`[Mix & Seek 피드백] 메모 ${notes.length}개 · 옷 ${skinNow}\n`;if(d.length)s+=`바꾼 값: ${d.join(' · ')}\n`;
+ function outText(){const d=cfgDiff();let s=`[Mix & Seek 피드백] 메모 ${notes.length}개 · 옷 ${skinNow} · 지금 시드 ${seed}\n`;if(d.length)s+=`바꾼 값: ${d.join(' · ')}\n`;
   notes.forEach((n,i)=>{s+=`\n${i+1}) ${n.time} · ${n.situ}\n${n.tags.length?`[${n.tags.join(',')}] `:''}${n.text}\n`;if(n.snap)s+=`판: ${n.snap}\n`;});if(q('#dvLog').checked&&PLOG.count())s+=`\n[플레이 기록] (P=놓기, E=지우개, B=바꾸기, I=아이템, 좌표는 (열,행))${PLOG.text(q('#dvLogD').checked)}`;return s;}
  function renderOut(){q('#dvCount').textContent=`보낼 메모 ${notes.length}개 · 플레이 기록 ${PLOG.count()}판`;q('#dvOut').value=outText();}
  q('#dvLog').onchange=renderOut;q('#dvLogD').onchange=renderOut;
@@ -1254,13 +1316,14 @@ if(DEV){(function(){
  const shut=()=>{$('shop').classList.remove('show');$('over').classList.remove('show');};
  q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();$('title').classList.remove('show');tainted=true;fx={};nextFx={};zone=z;startZone(nextGems(zone));close();};
  q('#dvRestart').onclick=()=>{shut();restartZone();close();};
+ q('#dvSeedGo').onclick=()=>{const v=q('#dvSeed').value.trim();if(!/^\d+$/.test(v)){toastDev('숫자를 넣으세요');return;}shut();close();seedNext=(+v)>>>0;startRun(false);};
  q('#dvNew').onclick=()=>{newGame();close();};
  q('#dvT5').onclick=()=>{tainted=true;tiles+=5;draw();toastDev('타일 '+tiles);};q('#dvTm5').onclick=()=>{tainted=true;tiles=Math.max(1,tiles-5);draw();toastDev('타일 '+tiles);};
  q('#dvM10').onclick=()=>{tainted=true;money+=10;draw();toastDev('돈 '+money+'원');};
  q('#dvShow').onclick=()=>{tainted=true;reveal=!reveal;draw();close();};
  q('#dvShop').onclick=()=>{tainted=true;close();openShop();};
  qa('[data-give]').forEach(b=>b.onclick=()=>{tainted=true;const id=b.dataset.give,it=ITEMS[id];
-  if(it.k==='hold'){if(bag.length>=3){toastDev('가방이 가득 찼습니다');return;}bag.push({id,uses:id==='probe'?3:id==='row'?1:0});}
+  if(it.k==='hold'){if(bag.length>=3){toastDev('가방이 가득 찼습니다');return;}bag.push({id,uses:Rules.USES[id]||0});}
   else if(it.k==='next'){fx[id]=true;if(id==='peek')fx.peek=3;toastDev(it.nm+': 이번 스테이지에 켰습니다');}
   else if(it.k==='perm'){perm[id]=true;if(id==='hand4'){HN=Math.min(4,CFG.hand+1);}}
   else if(it.k==='span')spanLeft=5;
