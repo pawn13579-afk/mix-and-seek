@@ -1280,7 +1280,7 @@ if(DEV){(function(){
 })();}
 
 function fit(){const w=$('boardWrap');const one=()=>{const sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';document.documentElement.style.setProperty('--cell',(sz/G)+'px');return sz;};const a=one();requestAnimationFrame(()=>{if(one()!==a)requestAnimationFrame(one);});}
-{const rot=document.createElement('div');rot.id='rotate';rot.innerHTML=`<div>${IC.refresh}<p>세로로 돌려 주세요</p></div>`;document.body.appendChild(rot);const chk=()=>rot.classList.toggle('show',matchMedia('(pointer:coarse)').matches&&innerWidth>innerHeight&&innerWidth<1000);window.addEventListener('resize',chk);chk();}
+{const rot=document.createElement('div');rot.id='rotate';rot.innerHTML=`<div>${IC.refresh}<p>세로로 돌려 주세요</p></div>`;document.body.appendChild(rot);const chk=()=>rot.classList.toggle('show',matchMedia('(pointer:coarse)').matches&&innerWidth>innerHeight*1.4&&innerWidth<1000);const chk2=()=>{chk();setTimeout(chk,400);};window.addEventListener('resize',chk2);window.addEventListener('orientationchange',chk2);chk();}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
 newGame();showTitle();setTimeout(fit,300);
 
