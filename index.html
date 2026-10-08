@@ -329,6 +329,7 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .ipDs{font-size:15px;line-height:1.55;margin:10px 0 14px}
 .ipBtns{display:flex;gap:8px;justify-content:center}.ipBtns button{font-size:16px;padding:10px 22px}
 .sk .ipIn,.sk .ipIn h3,.sk .ipDs{font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#devPanel{z-index:80 !important}#dvToast{z-index:90}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -718,17 +719,17 @@ function afterPlace(foundG){
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function lose(){phase='lost';saveRun();if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
  setTimeout(()=>{$('overBody').innerHTML=`<div class="oBig">${IC.zone}<b>${zone}</b></div><div class="oSub"><span class="st">${IC.tile}<b>0</b></span><span class="st">${IC.best}<b>${best}</b></span></div>`;$('over').classList.add('show');},1400);}
-function placeAt(x,y,i){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force)TUT.finish(c.id);}TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
+function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force)TUT.finish(c.id);}TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
  if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
  else{if(!(t&&fx.freeov))tiles--;if(nt)cell[k]=nt;else delete cell[k];}
  hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
 function bad(x,y){badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
-function eraseAt(x,y){if(tutForce){bad(x,y);return;}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
+function eraseAt(x,y){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const cs=TUT.step();if(cs&&cs.erase&&cell[K(x,y)])TUT.finish(cs.id);}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
 function collect(){if(collecting||collected)return;collecting=true;TUT.finish('sell');toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
- const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();if(TUT.on&&zone===2){zone++;startZone(nextGems(zone));}else if(TUT.on&&zone===3)tutEnd();else openShop();},2200);},420);return;}
+ const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();if(TUT.on&&zone===3)tutEnd();else openShop();},2200);},420);return;}
   const g=list[i++],v=(price(g.c)+(perm.value&&isMix(g.c)?1:0))*(fx.double?2:1);earned+=v;
   const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
   g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=SK?gemSvg(g.c,w):`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
@@ -737,7 +738,7 @@ function collect(){if(collecting||collected)return;collecting=true;TUT.finish('s
  step();}
 
 // ---------- 상점 ----------
-function offerList(){const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
+function offerList(){{const f=tutShopFix();if(f)return f.items.slice();}const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');tutShop();}
 const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'계속',span:'5스테이지 동안'};
 function renderShop(){const nx=spec(zone+1);
@@ -745,17 +746,17 @@ function renderShop(){const nx=spec(zone+1);
  $('shopNext').innerHTML=`<span class="lb">다음</span><span class="st">${IC.zone}<b>${zone+1}</b></span><span class="lb">스테이지</span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="lb">보석 <b>${nx.n}</b>개</span>${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}<span class="lb">새 색</span></span>`:''}`;
  $('tileSlotL').innerHTML=`${IC.tile}<span class="lbB">타일 ${CFG.shopGet}개 사기</span>`;$('buyTile').innerHTML=`${IC.coin}${CFG.shopCost}원`;$('buyTile').disabled=money<CFG.shopCost;
  $('shopItems').innerHTML=shop.items.map((id,i)=>{const it=ITEMS[id],sold=shop.bought!==null;const full=it.k==='hold'&&bag.length>=3;
-  const dis=sold||money<it.p||full;return `<div class="item${shop.bought===i?' sold':''}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}</div><div class="tag">${KIC[it.k]}<span>${KTAG2[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check+'샀음':full?IC.bag+'가득':IC.coin+it.p+'원'}</button></div>`;}).join('');
+  const dis=sold||money<it.p||full||!!(tutShopFix()&&id!==tutShopFix().must);return `<div class="item${shop.bought===i?' sold':''}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}</div><div class="tag">${KIC[it.k]}<span>${KTAG2[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check+'샀음':full?IC.bag+'가득':IC.coin+it.p+'원'}</button></div>`;}).join('');
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(+b.dataset.buy);});
- const cost=shop.rr+1;$('reroll').innerHTML=`${IC.refresh}<span>진열 바꾸기</span>${IC.coin}${cost}원`;$('reroll').disabled=money<cost||shop.bought!==null;
+ const cost=shop.rr+1;$('reroll').innerHTML=`${IC.refresh}<span>진열 바꾸기</span>${IC.coin}${cost}원`;$('reroll').disabled=money<cost||shop.bought!==null||!!tutShopFix();$('shopGo').disabled=!!tutShopFix()&&shop.bought===null;
  $('shopGo').innerHTML=`<span>다음 스테이지</span>${IC.play}`;
  const own=[...bag.map(b=>[b.id,'가방']),...Object.keys(nextFx).map(k=>[k,'다음 스테이지']),...Object.keys(perm).map(k=>[k,'계속']),...(spanLeft?[['bonus',spanLeft+'스테이지 남음']]:[])];
  $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>');}
-function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;money-=it.p;shop.bought=i;
+function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;{const f=tutShopFix();if(f&&id!==f.must)return;}TUT.finish('sh_buy');TUT.finish('sh2_buy');money-=it.p;shop.bought=i;
  if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;renderShop();}
 $('buyTile').onclick=()=>{if(money<CFG.shopCost)return;TUT.finish('sh_tile');money-=CFG.shopCost;tiles+=CFG.shopGet;renderShop();};
-$('reroll').onclick=()=>{const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;shop.items=offerList();renderShop();};
-$('shopGo').onclick=()=>{$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
+$('reroll').onclick=()=>{if(tutShopFix())return;const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;shop.items=offerList();renderShop();};
+$('shopGo').onclick=()=>{if(tutShopFix()&&shop.bought===null)return;$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
 
 // ---------- 가방 사용 ----------
 function picker(title,colors,cb){$('pickTitle').innerHTML=title;$('pickList').innerHTML=colors.map(c=>`<button class="pickC" data-pc="${c}" aria-label="${NAME[c]}">${SK?SK.tileImg(c,72):`<svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.03)}" fill="${FILL[c]}"/></svg>`}</button>`).join('');
@@ -765,8 +766,8 @@ function useBag(i){const it=bag[i];if(phase!=='play')return;armed=null;peekPick=
  else if(it.id==='area'){const cs=ALL.filter(c=>live().some(g=>g.c===c));picker(ITEM_IC.area,cs,c=>{const L=live().filter(g=>g.c===c),g=L[ri(L.length)];const x=Math.max(0,Math.min(G-3,g.x-ri(3))),y=Math.max(0,Math.min(G-3,g.y-ri(3)));areaMark={x,y,c};bag.splice(i,1);draw();});}
  else if(it.id==='probe'){mode='probe';draw();}}
 function boardTap(x,y){const k=K(x,y);
- if(mode==='probe'){const i=bag.findIndex(b=>b.id==='probe');if(i<0){mode=null;draw();return;}marks[k]=gems.some(g=>!g.f&&g.x===x&&g.y===y);bag[i].uses--;if(!bag[i].uses)bag.splice(i,1);mode=null;draw();return;}
- if(mode==='row'){rowMarks[y]=live().filter(g=>g.y===y).length;mode=null;fx.row=false;draw();return;}
+ if(mode==='probe'){const i=bag.findIndex(b=>b.id==='probe');if(i<0){mode=null;draw();return;}TUT.finish('s2_probe');marks[k]=gems.some(g=>!g.f&&g.x===x&&g.y===y);bag[i].uses--;if(!bag[i].uses)bag.splice(i,1);mode=null;draw();return;}
+ if(mode==='row'){TUT.finish('s3_row');rowMarks[y]=live().filter(g=>g.y===y).length;mode=null;fx.row=false;draw();return;}
  if(mode==='peek'){if(!cell[k]){bad(x,y);return;}if(!peeked[k]){peeked[k]=true;fx.peek--;}mode=null;peekPick=k;peekView=null;selCell=null;draw();return;}
  if(armed!==null){if(armed==='er'){if(!cell[k]){bad(x,y);return;}armed=null;eraseAt(x,y);}else{const i=armed;armed=null;placeAt(x,y,i);}return;}
  if(peeked[k]){if(peekPick===k){peekPick=null;peekView=null;selCell=null;}else{peekPick=k;peekView=null;selCell=cell[k]?k:null;}draw();return;}
@@ -786,7 +787,7 @@ for(let i=0;i<4;i++){const el=$('h'+i);
  el.addEventListener('pointerup',()=>{const d=drag;endDrag((d,t)=>{armed=null;eraseAt(t.x,t.y);});if(d&&!d.mv){armed=armed==='er'?null:'er';draw();}});el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});}
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.clientX,e.clientY);if(c)boardTap(c.x,c.y);});
-$('bRef').onclick=()=>{if(phase!=='play'||tutForce)return;armed=null;tiles-=CFG.refCost;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
+$('bRef').onclick=()=>{const cs=TUT.step();if(phase!=='play'||(tutForce&&!(cs&&cs.ref)))return;if(cs&&cs.ref){tiles-=CFG.refCost;hand=[1,1,2,0];hs=0;TUT.finish(cs.id);draw();return;}armed=null;tiles-=CFG.refCost;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
 $('bCollect').onclick=collect;$('retry').onclick=newGame;
 
 // ---------- 팝업, 가이드 ----------
@@ -884,35 +885,53 @@ function tutHelpSvg(){if(!tutHelp||!TUT.on||zone>3||phase!=='play')return '';let
  for(const c of [...new Set(live().map(g=>g.c))])for(const [x,y] of tutCands(c))s+=`<rect x="${x+0.08}" y="${y+0.08}" width="0.84" height="0.84" rx="0.08" fill="${FILL[c]}" fill-opacity="0.32" stroke="${FILL[c]}" stroke-width="0.05" stroke-dasharray="0.12 0.08"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.36" fill="${FILL[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
  return s;}
 const tT=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
-function tutScriptStage2(){tutScript=true;tutHelp=false;const st=(id,o)=>Object.assign({id:'s2_'+id},o);const R=[3,3],Y=[4,3];
+const TUT_SHOP={1:{items:['probe','row','value'],must:'probe'},2:{items:['row','freeov','bonus'],must:'row'}};
+const tutShopFix=()=>TUT.on&&TUT_SHOP[zone]?TUT_SHOP[zone]:null;
+const NOWHERE=[-9,-9];
+function tutFloor(){if(TUT.on&&zone<=3&&tiles<15){tiles=15;draw();}}
+function tutScriptStage2(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s2_'+id},o);const R=[3,3],Y=[1,1],R2=[1,3],R3=[3,1],GEM=[1,1];
  const steps=[
   st('intro',{target:'gemRow',text:`연습 2. 이번엔 ${tT(1)}<b>빨간 보석</b>과 ${tT(2)}<b>노란 보석</b>이<br>하나씩 숨어 있어요`}),
   st('pr',{action:true,hand:[1,2,1,0],target:{cell:R},force:R,marks:[{t:'target',c:R}],finger:['h0',{cell:R}],text:`${tT(1)} 빨간 타일을 깜빡이는 칸에 놓아 보세요`}),
   st('cr',{target:'boardWrap',marks:[{t:'candc',c:1}],text:`빨간 타일의 숫자는 <b>빨간 보석만</b> 세요.<br>노란 보석은 세지 않아요.<br>빨간 보석은 <b>빨간 ? 칸</b> 중 하나예요`}),
   st('py',{action:true,hand:[1,2,1,0],target:{cell:Y},force:Y,marks:[{t:'candc',c:1},{t:'target',c:Y}],finger:['h1',{cell:Y}],text:`이번엔 ${tT(2)} 노란 타일을 깜빡이는 칸에 놓아 보세요`}),
   st('cy',{target:'boardWrap',marks:[{t:'candc',c:2}],text:`노란 타일의 숫자는 <b>노란 보석만</b> 세요.<br>노란 보석은 <b>노란 ? 칸</b> 중 하나예요`}),
-  st('tools',{target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`}),
-  st('free',{target:'boardWrap',help:true,text:'<b>찾는 보석과 같은 색 타일</b>을 놓아야<br>그 보석의 단서가 나와요.<br>이제 ? 칸을 보며 두 보석을 직접 찾아 보세요'})];
+  st('ref',{action:true,ref:true,hand:[2,2,2,0],target:'bRef',force:NOWHERE,marks:[{t:'candc',c:1}],text:`빨간 보석을 더 좁히고 싶은데 손에 ${tT(1)} 빨강이 없어요.<br><b>바꾸기</b>를 눌러 손의 타일을 새로 받아 보세요.<br>타일 1개가 들어요`}),
+  st('pr2',{action:true,target:{cell:R2},force:R2,marks:[{t:'candc',c:1},{t:'target',c:R2}],finger:['h0',{cell:R2}],text:`빨강이 왔어요! 깜빡이는 칸에 놓아 보세요`}),
+  st('pr3',{action:true,hand:[1,1,2,0],target:{cell:R3},force:R3,marks:[{t:'candc',c:1},{t:'target',c:R3}],finger:['h0',{cell:R3}],text:`한 번 더! 깜빡이는 칸에 놓아 보세요`}),
+  st('cov',{target:{cell:GEM},marks:[{t:'candc',c:1}],text:`빨간 보석은 여기! 그런데 이 칸엔 ${tT(2)} <b>노란 타일</b>이 덮여 있어요.<br>그대로 빨강을 놓으면 섞여서 ${tT(3)} 주황이 돼요`}),
+  st('er',{action:true,erase:true,target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['er',{cell:GEM}],text:`<b>지우개</b>를 그 칸으로 끌어다 놓아<br>노란 타일을 지워 보세요. 타일 1개가 들어요`}),
+  st('pf',{action:true,hand:[1,1,2,0],target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['h0',{cell:GEM}],text:`이제 빨강을 놓아 <b>빨간 보석</b>을 찾아요`}),
+  st('probe',{action:true,probe:true,target:'bag',force:NOWHERE,text:`상점에서 산 <b>탐지기</b>를 써 볼게요.<br>아래 탐지기를 누르고 <b>쓰기</b>, 그다음 판의 칸 하나를 누르세요`}),
+  st('probeRes',{target:'boardWrap',text:'보석이 있는 칸이면 <b>흰 보석 테두리</b>,<br>없는 칸이면 <b>✕</b>가 남아요.<br>탐지기는 3번 쓸 수 있어요'}),
+  st('free',{target:'boardWrap',help:true,text:'이제 노란 ? 칸을 보며<br><b>노란 보석</b>을 직접 찾아 보세요'})];
  for(const s of steps)TUT.want(s,0);}
-function tutScriptStage3(){tutScript=true;tutHelp=false;const st=(id,o)=>Object.assign({id:'s3_'+id},o);const C=[3,3];
+function tutScriptStage3(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s3_'+id},o);const C=[3,3];
  const steps=[
+  st('row',{action:true,rowStep:true,target:'boardWrap',force:NOWHERE,text:'상점에서 산 <b>줄 탐지</b>가 켜졌어요!<br>"다음 스테이지에서만" 아이템은 이렇게 바로 효과가 나요.<br>가로줄 하나를 골라 아무 칸이나 눌러 보세요'}),
+  st('rowRes',{target:'boardWrap',text:'그 줄에 있는 <b>보석 수</b>(색과 상관없이)가<br>줄 왼쪽 끝에 표시돼요'}),
   st('intro',{target:'gemRow',text:`연습 3. ${tT(3)} <b>주황 보석</b>은<br><b>주황 타일</b>로만 찾을 수 있어요`}),
   st('mix',{target:'mixBtn',text:`타일을 같은 칸에 겹쳐 놓으면 색이 섞여요.<br>${tT(1)}+${tT(2)}=${tT(3)} ${tT(2)}+${tT(4)}=${tT(6)} ${tT(1)}+${tT(4)}=${tT(5)}<br>이 버튼을 누르면 언제든 다시 볼 수 있어요`}),
   st('p1',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:`먼저 ${tT(1)} 빨간 타일을 가운데에 놓아요`}),
   st('p2',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h1',{cell:C}],text:`그 위에 ${tT(2)} 노란 타일을 <b>겹쳐</b> 놓아요`}),
   st('co',{target:'boardWrap',marks:[{t:'candc',c:3}],text:`${tT(3)} 주황 타일이 됐어요!<br>이제 숫자는 <b>주황 보석</b>을 세요.<br>주황 보석은 주황 ? 칸 중 하나예요`}),
-  st('rule',{target:'boardWrap',text:'<b>같은 색</b>이 겹치거나 <b>세 색이 다 모이면</b><br>칸이 비워져요. 지우개로 지워도 돼요'}),
+  st('rule',{target:'boardWrap',text:'<b>같은 색</b>이 겹치거나 <b>세 색이 다 모이면</b><br>칸이 비워져요'}),
   st('free',{target:'boardWrap',help:true,text:'주황 ? 칸에 빨강과 노랑을 겹쳐<br><b>주황 보석</b>을 찾아 보세요'})];
  for(const s of steps)TUT.want(s,0);}
-function tutShopDetailed(){money+=5;renderShop();const it1=document.querySelector('#shopItems .item');
+function tutShopDetailed(){money=Math.max(money,0)+8;renderShop();const it1=document.querySelector('#shopItems .item');
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
- S('sh_money',{target:'shopMoney',text:'보석을 팔아 번 <b>돈</b>이에요.<br>기본색 보석 1원, 섞은 색 보석 2원.<br>연습이니 <b>5원</b>을 더 드렸어요'});
+ S('sh_money',{target:'shopMoney',text:'보석을 팔아 번 <b>돈</b>이에요.<br>기본색 보석 1원, 섞은 색 보석 2원.<br>연습이니 <b>8원</b>을 더 드렸어요'});
  S('sh_tile',{action:true,target:document.querySelector('#shop .tileSlot'),text:`남은 타일이 모자라면 여기서 사요.<br><b>${CFG.shopCost}원에 타일 ${CFG.shopGet}개</b>, 몇 번이든 살 수 있어요.<br>버튼을 눌러 한 번 사 보세요`});
  S('sh_card',{target:it1,text:'<b>아이템 카드</b>예요.<br>위에서부터 이름, 언제 효과가 나는지,<br>하는 일이고, 오른쪽이 가격이에요'});
- S('sh_one',{target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>마음에 드는 걸 골라 보세요. 안 사도 돼요'});
- S('sh_reroll',{target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'});
- S('sh_bag',{target:'shopBag',text:'산 아이템은 여기 보여요.<br><b>가방</b> 아이템은 게임 화면 아래에서 눌러 쓰고,<br>나머지는 저절로 효과가 나요'});
+ S('sh_kinds',{target:'shopItems',text:'아이템은 효과가 나는 때가 네 가지예요.<br><b>가방</b>: 넣어 두고 원할 때 꺼내 써요<br><b>다음 스테이지에서만</b>: 다음 판에 저절로<br><b>5스테이지 동안</b> · <b>계속</b>: 그동안 저절로'});
+ S('sh_buy',{action:true,target:it1,text:'한 번에 <b>하나만</b> 살 수 있어요.<br>이번엔 가방 아이템 <b>탐지기</b>를 사 보세요'});
+ S('sh_reroll',{target:'reroll',text:'마음에 드는 게 없으면 <b>진열 바꾸기</b>로 새로 받아요.<br>바꿀 때마다 1원씩 비싸져요. 연습에선 잠가 뒀어요'});
+ S('sh_bag',{target:'shopBag',text:'산 아이템은 여기 보여요.<br>탐지기는 다음 스테이지에서 써 볼게요'});
  S('sh_go',{target:'shopGo',text:'준비가 되면 <b>다음 스테이지</b>를 눌러요'});}
+function tutShop2(){money=Math.max(money,0)+4;renderShop();const it1=document.querySelector('#shopItems .item');
+ const S=(id,o)=>TUT.want(Object.assign({id},o),0);
+ S('sh2_buy',{action:true,target:it1,text:'이번엔 <b>다음 스테이지에서만</b> 효과가 나는<br><b>줄 탐지</b>를 사 보세요. 연습이니 4원을 더 드렸어요'});
+ S('sh2_go',{target:'shopGo',text:'다음 스테이지가 시작되면 바로 효과가 나요.<br><b>다음 스테이지</b>를 눌러요'});}
 function tutEnd(){if(TUT.seen('end')){startRun(false);return;}TUT.want({id:'end',text:'<b>튜토리얼 끝!</b><br>이제 진짜 게임을 처음부터 시작해요',onDone:()=>startRun(false)},300);}
 // ---------- 아이템 이름표와 설명 창 ----------
 const SHORT={pick:'색 고르기',peek:'숫자 보기',row:'줄 탐지',area:'색 탐지',freeov:'겹치기 공짜',value:'섞은값+1',bonus:'찾으면+1',hand4:'네 번째 손',lucky:'행운의 손',small:'좁은 판',double:'두 배',probe:'탐지기'};
@@ -970,7 +989,7 @@ function tutPlaced(x,y,found){TUT.finish('place');
  if(found){TUT.want({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
  else if(!tutScript&&cell[K(x,y)])TUT.want({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
 function tutClear(){TUT.want({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요',skipIf:()=>collecting||collected},1200);}
-function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}TUT.want({id:'shopTile',target:document.querySelector('#shop .tileSlot'),text:'돈으로 <b>타일</b>을 살 수 있어요. 몇 번이든 살 수 있어요'},300);TUT.want({id:'shopItem',target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>카드의 설명을 보고 골라요'},350);TUT.want({id:'shopReroll',target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'},400);TUT.want({id:'shopGo',target:'shopNext',text:'다음 스테이지에 나올 보석을 보고<br>준비가 되면 <b>다음 스테이지</b>를 눌러요'},450);}
+function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}TUT.want({id:'shopTile',target:document.querySelector('#shop .tileSlot'),text:'돈으로 <b>타일</b>을 살 수 있어요. 몇 번이든 살 수 있어요'},300);TUT.want({id:'shopItem',target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>카드의 설명을 보고 골라요'},350);TUT.want({id:'shopReroll',target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'},400);TUT.want({id:'shopGo',target:'shopNext',text:'다음 스테이지에 나올 보석을 보고<br>준비가 되면 <b>다음 스테이지</b>를 눌러요'},450);}
 // ---------- 시작 화면과 기록 ----------
 let runGems=0,runMoney=0;
 const loadRuns=()=>{try{return JSON.parse(localStorage.getItem('ms2_runs')||'[]');}catch(e){return [];}};
