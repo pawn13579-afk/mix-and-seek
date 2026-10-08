@@ -862,13 +862,13 @@ function draw(){
  $('root').classList.toggle('nudge',nudge&&phase==='play'&&zone===1);
  // 위 정보
  if(!$('tileNum'))$('stat').innerHTML=`<span class="lbTut" id="lbTut">연습</span><span class="st">${IC.zone}<b id="zoneNum"></b></span><span class="st">${IC.tile}<b id="tileNum"></b></span><span class="st">${IC.coin}<b id="moneyNum"></b></span><span class="st muted">${IC.best}<span id="bestNum"></span></span>`;
- $('lbTut').style.display=TUT.on?'inline-block':'none';const tn=$('tileNum'),tv=String(tiles-pendTile);if(tn.textContent!==tv)tn.textContent=tv;tn.classList.toggle('low',phase==='play'&&tiles<=3);if($('zoneNum').textContent!==String(zone))$('zoneNum').textContent=zone;if($('moneyNum').textContent!==String(money))$('moneyNum').textContent=money;if($('bestNum').textContent!==String(best))$('bestNum').textContent=best;
+ $('lbTut').style.display=TUT.on?'inline-block':'none';const tn=$('tileNum'),tv=String(tiles-pendTile);if(tn.textContent!==tv)tn.textContent=tv;tn.classList.toggle('low',phase==='play'&&tiles-pendTile<=3);if($('zoneNum').textContent!==String(zone))$('zoneNum').textContent=zone;if($('moneyNum').textContent!==String(money))$('moneyNum').textContent=money;if($('bestNum').textContent!==String(best))$('bestNum').textContent=best;
  const order=[...gems].sort((a,b)=>ALL.indexOf(a.c)-ALL.indexOf(b.c)||(b.f-a.f));
  $('gemRow').innerHTML=order.map(g=>SK?SK.gemImg(g.c,g.f):`<svg viewBox="0 0 1 1" class="gIco">${g.f?gem(0.5,0.52,0.9,FILL[g.c],'#FFFFFF',0.05):gem(0.5,0.52,0.88,'none',FILL[g.c],0.08)}</svg>`).join('')+`<span class="gCnt"><b>${done().length}</b> / ${gems.length}</span>`+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#gemRow .tutQuit').forEach(b=>b.onclick=tutQuit);
  // 손
  for(let i=0;i<4;i++){const b=$('h'+i),c=hand[i];b.style.display=phase==='play'&&i<HN?'flex':'none';b.innerHTML=c?(SK?SK.handImg(c):`<svg viewBox="0 0 1 1" class="hdia"><polygon points="0.5,0.03 0.97,0.5 0.5,0.97 0.03,0.5" fill="${FILL[c]}"/></svg>`):'';b.classList.toggle('on',hs===i&&!(selCell&&cell[selCell]));b.classList.toggle('armed',armed===i);b.style.opacity=drag&&drag.i===i?0.35:1;}
  $('er').style.display=phase==='play'?'flex':'none';$('er').style.opacity=drag&&drag.er?0.35:1;$('er').classList.toggle('armed',armed==='er');
- $('bRef').style.display=phase==='play'?'':'none';{const cs=TUT.step();$('bRef').disabled=!(cs&&cs.ref)&&(tiles<=CFG.refCost||poolList().length<=1);}$('handRow').classList.toggle('low',phase==='play'&&tiles<=3);
+ $('bRef').style.display=phase==='play'?'':'none';{const cs=TUT.step();$('bRef').disabled=!(cs&&cs.ref)&&(tiles<=CFG.refCost||poolList().length<=1);}$('handRow').classList.toggle('low',phase==='play'&&tiles-pendTile<=3);
  $('bCollect').style.display=phase==='clear'&&!collected?'':'none';$('bCollect').disabled=collecting;
  // 가방과 효과
  const chip=(attr,id,badge,cls)=>`<button class="chip${cls||''}" ${attr} aria-label="${ITEMS[id].nm}">${ITEM_IC[id]}<span class="cl">${SHORT[id]}</span>${badge!=null&&badge!==''?`<i>${badge}</i>`:''}</button>`;
@@ -900,22 +900,22 @@ function afterPlace(foundG){
   tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting){SFX.clear();}if(phase==='clear'&&!collecting)toast(`<div class="tClear">스테이지 클리어!</div>`+big(IC.zone+zone+IC.check),0);},foundG?1600:300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
-function lose(){phase='lost';TUT.clearNow();SFX.lose();saveRun();PLOG.end();const newBest=!tainted&&!TUT.on&&zone>best;if(newBest){best=zone;LS('ms2_best',String(best));}draw();
+function lose(){phase='lost';pendTile=0;TUT.clearNow();SFX.lose();saveRun();PLOG.end();const newBest=!tainted&&!TUT.on&&zone>best;if(newBest){best=zone;LS('ms2_best',String(best));}draw();
  const bw=$('boardWrap');bw.classList.remove('shake');void bw.offsetWidth;bw.classList.add('shake');
  setTimeout(()=>{if(phase!=='lost')return;$('loseBar').innerHTML=`<div class="lbTitle">GAME OVER</div><div class="lbRow"><span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.gemW}<b>${runGems}</b></span><span class="st">${IC.coin}<b>${runMoney}</b></span><span class="st${newBest?' newBest':''}">${IC.best}<b>${best}</b>${newBest?'<em>새 기록!</em>':''}</span></div><div class="lbBtns"><button id="retry2" class="primary">${IC.retry}<span>다시 하기</span></button><button id="toTitle2">${IC.next}<span>처음 화면</span></button></div>`;$('root').classList.add('lost');$('retry2').onclick=()=>startRun(TUT.on);$('toTitle2').onclick=showTitle;if(newBest)SFX.clear();fit();},700);}
-function spendTile(n){const b=tiles;tiles-=n;if(tiles>0&&tiles<=3&&tiles<b){SFX.warn();}}
+function spendTile(n){const b=tiles;tiles-=n;pendTile=Math.min(pendTile,Math.max(0,tiles-1));if(tiles>0&&tiles<=3&&tiles<b){SFX.warn();}}
 function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force&&c.color&&hand[i]!==c.color){bad(x,y);return;}if(c&&c.action&&c.force)TUT.finish(c.id);}if(nudge)nudge=false;const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
- if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];findFx(x,y,add);}
+ let add=0;if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;add=CFG.find+(spanLeft?1:0);tiles+=add;pendTile+=add;runGems++;flash=[g];}
  else{if(!(t&&fx.freeov))spendTile(1);if(nt)cell[k]=nt;else delete cell[k];if(nt&&!gems.some(g=>g.c===nt)){const mb=$('mixBtn');mb.classList.remove('pulse');void mb.offsetWidth;mb.classList.add('pulse');}}
- logPlace(h,x,y,t,nt,!!(g&&g.f));if(g&&g.f)SFX.find(nt);else if(!t)SFX.place();else if(nt)SFX.mix();else SFX.empty();hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
+ logPlace(h,x,y,t,nt,!!(g&&g.f));if(g&&g.f)SFX.find(nt);else if(!t)SFX.place();else if(nt)SFX.mix();else SFX.empty();hand[i]=draw1();hs=i;afterPlace(g&&g.f);if(add)findFx(x,y,add);tutPlaced(x,y,!!(g&&g.f));}
 // 판의 칸이 화면에서 차지하는 자리(판 여백까지 계산)
 function cellRect(x,y){const f=$('fld').getBoundingClientRect(),m=SK?SK.margin:0.1,u=f.width/(G+m*2);return {left:f.left+(x+m)*u,top:f.top+(y+m)*u,width:u,height:u};}
-function findFx(x,y,add){pendTile+=add;const root=$('root'),rr=root.getBoundingClientRect(),c=cellRect(x,y),cx=c.left+c.width/2-rr.left,cy=c.top+c.height/2-rr.top;
+function findFx(x,y,add){const root=$('root'),rr=root.getBoundingClientRect(),c=cellRect(x,y),cx=c.left+c.width/2-rr.left,cy=c.top+c.height/2-rr.top;
  const ring=document.createElement('div');ring.className='findRing';ring.style.cssText=`left:${cx-c.width/2}px;top:${cy-c.height/2}px;width:${c.width}px;height:${c.height}px`;ring.innerHTML='<svg viewBox="0 0 1 1" width="100%" height="100%"><polygon points="0.5,0.03 0.97,0.5 0.5,0.97 0.03,0.5" fill="none" stroke="#FFFFFF" stroke-width="0.07"/></svg>';root.appendChild(ring);setTimeout(()=>ring.remove(),760);
  const w=Math.min(36,c.width*0.62),f=document.createElement('div');f.className='fly flyTile';f.style.cssText=`width:${w}px;height:${w}px;left:${cx-w/2}px;top:${cy-w/2}px`;f.innerHTML=IC.tile;root.appendChild(f);
  setTimeout(()=>{const tr=$('tileNum').getBoundingClientRect(),tx=tr.left+tr.width/2-rr.left,ty=tr.top+tr.height/2-rr.top;f.style.transform=`translate(${tx-cx}px,${ty-cy}px) scale(0.6)`;f.style.opacity='0.9';},260);
- setTimeout(()=>{f.remove();pendTile=Math.max(0,pendTile-add);draw();const n=$('tileNum');if(!n)return;n.classList.remove('bump');void n.offsetWidth;n.classList.add('bump');const r=n.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+add;p.style.left=(r.right+2)+'px';p.style.top=(r.top-6)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);},780);}
+ setTimeout(()=>{f.remove();pendTile=Math.max(0,pendTile-add);draw();const n=$('tileNum');if(!n)return;if(n.animate)n.animate([{transform:'scale(1)'},{transform:'scale(1.45)',color:'#C79A00',offset:.4},{transform:'scale(1)'}],{duration:350,easing:'ease-out'});const r=n.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+add;p.style.left=(r.right+2)+'px';p.style.top=(r.top-6)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);},780);}
 function bad(x,y){SFX.bad();badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
 function eraseAt(x,y){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const cs=TUT.step();if(cs&&cs.erase&&cell[K(x,y)])TUT.finish(cs.id);}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];spendTile(1);PLOG.mv(`E 지우개(${x+1},${y+1}) 타일${tiles}`);SFX.erase();afterPlace(false);}
 
@@ -977,7 +977,7 @@ function boardTap(x,y){const k=K(x,y);
 function cellAt(cx,cy){const pt=$('fld').createSVGPoint();pt.x=cx;pt.y=cy;const p=pt.matrixTransform($('fld').getScreenCTM().inverse());if(p.x<0||p.y<0||p.x>=G||p.y>=G)return null;return {x:Math.floor(p.x),y:Math.floor(p.y)};}
 function moveGhost(e){const top=$('handRow').getBoundingClientRect().top;const lift=e.clientY>=top-4?0:LIFT;const r=$('root').getBoundingClientRect(),gh=$('ghost');const half=(gh.offsetWidth||60)/2;gh.style.left=(e.clientX-r.left-half)+'px';gh.style.top=(e.clientY-r.top-half-lift)+'px';
  const mv0=drag.mv;if(!drag.mv&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>14)drag.mv=true;const nt=(drag.mv&&e.clientY<top)?cellAt(e.clientX,e.clientY-lift):null,ch=(nt?K(nt.x,nt.y):'')!==(target?K(target.x,target.y):'');target=nt;if(ch||mv0!==drag.mv)draw();}
-function startDrag(el,e,d,bgc,txt,inkc){if(phase!=='play')return;if(mode){mode=null;draw();}e.preventDefault();el.setPointerCapture(e.pointerId);drag={...d,sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background=SK?`url(${d.er?SK.eraserURL():SK.tileURL(d.c,null)}) center/100% 100% no-repeat`:bgc;if(SK)txt='';gh.style.color=inkc;gh.innerHTML=txt;moveGhost(e);}
+function startDrag(el,e,d,bgc,txt,inkc){if(phase!=='play')return;if(mode)mode=null;e.preventDefault();el.setPointerCapture(e.pointerId);drag={...d,sx:e.clientX,sy:e.clientY,mv:false};const gh=$('ghost');gh.style.display='flex';gh.style.background=SK?`url(${d.er?SK.eraserURL():SK.tileURL(d.c,null)}) center/100% 100% no-repeat`:bgc;if(SK)txt='';gh.style.color=inkc;gh.innerHTML=txt;moveGhost(e);draw();}
 function nearEl(el,e){const r=el.getBoundingClientRect();return e.clientX>=r.left-24&&e.clientX<=r.right+24&&e.clientY>=r.top-24&&e.clientY<=r.bottom+24;}
 function endDrag(fn){if(!drag)return;const d=drag,t=target;drag=null;target=null;$('ghost').style.display='none';if(t)fn(d,t);else draw();}
 for(let i=0;i<4;i++){const el=$('h'+i);
@@ -1195,7 +1195,7 @@ const PLOG=(()=>{const CLn={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};let
  const st=()=>run&&run.s[run.s.length-1];
  return {CLn,
   newRun(){run={d:nowTxt(),seed,tut:TUT.on?1:0,cfg:(typeof cfgDiffTxt==='function'?cfgDiffTxt():''),s:[],end:''};runs.push(run);if(runs.length>5)runs=runs.slice(-5);save();},
-  stage(){if(!run)return;run.s.push({z:zone,g:gems.map(g=>`${CLn[g.c]}(${g.x+1},${g.y+1})`).join(' '),t0:tiles,m0:money,fx:Object.keys(fx).filter(k=>fx[k]&&ITEMS[k]).map(k=>ITEMS[k].nm).join(','),mv:[],sh:[]});save();},
+  stage(){if(!run)return;{const x=st();if(x&&!x.mv.length&&!x.sh.length&&x.t1==null)run.s.pop();}run.s.push({z:zone,g:gems.map(g=>`${CLn[g.c]}(${g.x+1},${g.y+1})`).join(' '),t0:tiles,m0:money,fx:Object.keys(fx).filter(k=>fx[k]&&ITEMS[k]).map(k=>ITEMS[k].nm).join(','),mv:[],sh:[]});save();},
   mv(s){const x=st();if(!x)return;x.mv.push(s);save();},
   clear(earned){const x=st();if(!x)return;x.t1=tiles;x.earn=earned;save();},
   shop(s){const x=st();if(!x)return;x.sh.push(s);save();},
@@ -1223,7 +1223,7 @@ function showTitle(){$('root').classList.remove('lost');$('over').classList.remo
   ${played?'':'<p class="tHint">처음이라면 튜토리얼부터 해 보세요</p>'}</div>`;
  $('title').classList.add('show');fitFull($('title'));
  $('tStart').onclick=()=>startRun(false);$('tTut').onclick=()=>startRun(true);$('tRec').onclick=showRecords;}
-function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut||loadRuns().length===0;const sd=seedNext;seedNext=null;newGame(sd);PLOG.newRun();}
+function startRun(tut){$('title').classList.remove('show');TUT.reset();TUT.on=tut;nudge=tut||loadRuns().length===0;const sd=tut?null:seedNext;if(!tut)seedNext=null;newGame(sd);PLOG.newRun();}
 function showRecords(){const r=loadRuns().slice().reverse(),clean=loadRuns().filter(x=>!x.c&&!x.t),top=clean.slice().sort((a,b)=>b.z-a.z||b.g-a.g).slice(0,3);
  $('records').innerHTML=`<div class="fIn rIn"><div class="rHead"><button id="rBack" aria-label="뒤로">${IC.next}</button><h2>기록</h2><span></span></div>
   <div class="rSum"><div>${IC.best}<span>최고 기록</span><b>${best?'스테이지 '+best:'없음'}</b></div><div>${IC.zone}<span>한 판 수</span><b>${clean.length}판</b></div></div>
@@ -1293,7 +1293,7 @@ if(DEV){(function(){
  const q=s=>el.querySelector(s),qa=s=>el.querySelectorAll(s);
  // 위 버튼
  const btn=document.createElement('button');btn.id='devBtn';btn.textContent='DEV';btn.setAttribute('aria-label','개발자 모드');document.body.appendChild(btn);
- const open=tab=>{$('dvSitu').textContent='지금: '+situ();q('#dvSeed').value=seed;q('#dvSeedNow').textContent=`지금 게임의 시드 ${seed}. 같은 시드면 스테이지마다 보석 자리가 같고, 같은 수를 두면 손과 진열도 같습니다.`;renderList();tabTo(tab||'memo');el.classList.add('show');};
+ const open=tab=>{$('dvSitu').textContent='지금: '+situ();q('#dvSeed').value=seedNext!=null?seedNext:seed;q('#dvSeedNow').textContent=`지금 게임의 시드 ${seed}.`+(seedNext!=null?` 다음 [시작]에 시드 ${seedNext}를 씁니다.`:'')+' 같은 시드면 스테이지마다 보석 자리가 같고, 같은 수를 두면 손과 진열도 같습니다.';renderList();tabTo(tab||'memo');el.classList.add('show');};
  btn.onclick=()=>open('memo');q('#dvClose').onclick=()=>el.classList.remove('show');
  function tabTo(t){qa('.dvTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));qa('section').forEach(s=>s.hidden=s.dataset.sec!==t);if(t==='send')renderOut();}
  qa('.dvTabs button').forEach(b=>b.onclick=()=>tabTo(b.dataset.tab));
@@ -1314,10 +1314,10 @@ if(DEV){(function(){
  // 바로 하기
  const close=()=>el.classList.remove('show');
  const shut=()=>{$('shop').classList.remove('show');$('over').classList.remove('show');};
- q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();$('title').classList.remove('show');tainted=true;fx={};nextFx={};zone=z;startZone(nextGems(zone));close();};
- q('#dvRestart').onclick=()=>{shut();restartZone();close();};
+ q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();if($('title').classList.contains('show')||phase==='lost')startRun(false);tainted=true;fx={};nextFx={};zone=z;startZone(nextGems(zone));close();};
+ q('#dvRestart').onclick=()=>{if($('title').classList.contains('show')){toastDev('먼저 게임을 시작하세요');return;}shut();restartZone();close();};
  q('#dvSeedGo').onclick=()=>{const v=q('#dvSeed').value.trim();if(!/^\d+$/.test(v)){toastDev('숫자를 넣으세요');return;}shut();close();seedNext=(+v)>>>0;startRun(false);};
- q('#dvNew').onclick=()=>{newGame();close();};
+ q('#dvNew').onclick=()=>{newGame();PLOG.newRun();close();};
  q('#dvT5').onclick=()=>{tainted=true;tiles+=5;draw();toastDev('타일 '+tiles);};q('#dvTm5').onclick=()=>{tainted=true;tiles=Math.max(1,tiles-5);draw();toastDev('타일 '+tiles);};
  q('#dvM10').onclick=()=>{tainted=true;money+=10;draw();toastDev('돈 '+money+'원');};
  q('#dvShow').onclick=()=>{tainted=true;reveal=!reveal;draw();close();};
