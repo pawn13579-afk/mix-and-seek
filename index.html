@@ -5,12 +5,10 @@
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--text-primary:#EDECE8;--text-secondary:#B4B2A9;--text-muted:#888780;--text-danger:#F09595;--surface-1:#242422;--surface-2:#2C2C2A;--border:rgba(255,255,255,0.12);--border-strong:rgba(255,255,255,0.28);--accent:#85B7EB}}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;touch-action:none}
-body.dev{overflow:auto;touch-action:auto}
 button{font:inherit;color:var(--text-primary);background:var(--surface-1);border:1px solid var(--border-strong);border-radius:var(--radius);padding:8px 12px;cursor:pointer}
 button:disabled{opacity:0.4;cursor:default}
 button.primary{background:#F2C12E;color:#1F1E1C;border-color:#F2C12E;font-weight:700}
 #root{max-width:min(680px,100vw);height:100vh;height:100dvh;margin:0 auto;padding:8px 12px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;position:relative}
-body.dev #root{height:auto}
 #top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 #stat{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:16px}
 #stat b{font-size:21px;font-weight:700}
@@ -23,7 +21,6 @@ body.dev #root{height:auto}
 #gemRow .gCnt{font-size:18px;margin-left:8px}
 #gemRow .gCnt b{font-size:22px}
 #boardWrap{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
-body.dev #boardWrap{height:min(92vw,560px);flex:none}
 #fld{display:block;touch-action:none}
 #toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.9);background:rgba(20,20,20,0.88);color:#FFFFFF;font-size:22px;font-weight:700;padding:14px 22px;border-radius:14px;text-align:center;line-height:1.4;word-break:keep-all;width:max-content;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;max-width:90%}
 #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -204,6 +201,28 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 #peekBar .pkC.on{outline:3px solid #FFFFFF;outline-offset:-1px;border-radius:6px}
 #bag .chip.on{outline:3px solid var(--accent)}
 .sk #peekBar{border-radius:0;border:3px solid #F6C430;background:#000}
+/* 개발자 모드 */
+#devBtn{height:38px;padding:0 8px;font-size:12px;font-weight:700;background:#C0392B;color:#FFFFFF;border-color:#C0392B}
+#devPanel{z-index:40}
+.dv{padding-top:12px}
+.dvHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:18px}
+.dvHead button{padding:6px 12px}
+.dvTabs{display:flex;gap:6px;margin-bottom:12px}.dvTabs button{flex:1;font-size:15px;padding:10px 0}.dvTabs button.on{background:var(--text-primary);color:var(--bg)}
+.dv h4{font-size:15px;margin:16px 0 8px}
+.dvSitu{font-size:14px;color:var(--text-secondary);margin-bottom:8px;line-height:1.6}
+.dvTags,.dvBtns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.dvTags button,.dvBtns button{font-size:14px;padding:8px 10px}
+.dvTags button.on,.dvBtns button.on{background:var(--text-primary);color:var(--bg)}
+.dv textarea{width:100%;font:inherit;font-size:16px;padding:10px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text-primary);resize:vertical;touch-action:auto}
+.dvChk{display:flex;align-items:center;gap:6px;font-size:14px;margin:8px 0}
+.dvWide{width:100%;font-size:16px;padding:12px}
+.dvNoteItem{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--border);padding:10px 0;font-size:15px;line-height:1.5}
+.dvNoteItem button{padding:4px 8px;flex:none}.dvNoteItem .ic{width:16px;height:16px}
+.dvMeta{font-size:12px;color:var(--text-muted);margin-top:2px}
+.dvNote{font-size:13px;color:var(--text-muted);line-height:1.6;margin:6px 0}
+.dvRow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}.dvRow span{flex:1}.dvRow input{width:72px;font-size:16px;padding:6px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text-primary)}.dvRow i{font-style:normal;font-size:12px;color:var(--text-muted);width:44px}
+.dv details{margin:6px 0 8px}.dv summary{font-size:14px;padding:6px 0;cursor:pointer}
+#dvToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(20,20,20,0.92);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}#dvToast.show{opacity:1}
+.sk #devPanel{font-family:system-ui,"Malgun Gothic",sans-serif}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -292,18 +311,18 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 </div>
 
 
-<div class="tools" id="devTools">
- <div class="trow"><span>구역 바로 가기</span><span id="zbs"></span></div>
- <div class="trow"><span>테스트</span><button id="dMoney">돈 +10</button><button id="dTiles">타일 +5</button><button id="dShow">정답 보기</button><button id="dShop">상점 열기</button></div>
-</div>
 <div id="ghost"></div>
 </div>
 
 <script>
+// ---------- 개발자 모드 설정 (주소에 ?dev 한 번 붙이면 이 기기에서 계속 켜짐, ?dev=0 으로 끔) ----------
+const DEV=(()=>{const q=location.search;try{if(/[?&]dev=0/.test(q)){localStorage.removeItem('ms2_dev');return false;}if(/[?&]dev\b/.test(q)){localStorage.setItem('ms2_dev','1');return true;}return localStorage.getItem('ms2_dev')==='1';}catch(e){return /[?&]dev\b/.test(q);}})();
+const CFG0={start:10,find:1,shopCost:2,shopGet:3,gemP:1,gemM:2,hand:3,refCost:1,items:{}};
+const CFG=(()=>{let c={};if(DEV)try{c=JSON.parse(localStorage.getItem('ms2_cfg')||'{}');}catch(e){}return Object.assign({},CFG0,c,{items:Object.assign({},c.items||{})});})();
 const FILL={1:'#E0312B',2:'#F2C12E',4:'#2A6FDB',3:'#F07F1A',6:'#2E9E4F',5:'#8E44AD'},INK={1:'#FFFFFF',2:'#000000',4:'#FFFFFF',3:'#000000',6:'#FFFFFF',5:'#FFFFFF'};
 const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},PRIM=[1,2,4],MIXC=[3,6,5],ALL=[1,2,4,3,6,5];
 const $=id=>document.getElementById(id),ri=n=>Math.floor(Math.random()*n),K=(x,y)=>x+','+y,LIFT=44;
-const isMix=c=>MIXC.includes(c),price=c=>isMix(c)?2:1;
+const isMix=c=>MIXC.includes(c),price=c=>isMix(c)?CFG.gemM:CFG.gemP;
 function gem(cx,cy,w,fill,stroke,sw,op){const h=w*0.82,t=cy-h*0.45,m=cy-h*0.12,b=cy+h*0.55,a=w*0.5,c=w*0.28,d=w*0.14;const P=(x,y)=>`${(cx+x).toFixed(3)},${y.toFixed(3)}`;
  return `<g opacity="${op==null?1:op}"><polygon points="${[P(-c,t),P(c,t),P(a,m),P(0,b),P(-a,m)].join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M${P(-a,m)}L${P(a,m)}M${P(-c,t)}L${P(-d,m)}L${P(0,b)}M${P(c,t)}L${P(d,m)}L${P(0,b)}M${P(-d,m)}L${P(0,t)}L${P(d,m)}" fill="none" stroke="${stroke}" stroke-width="${sw*0.6}" stroke-linejoin="round" opacity="0.7"/></g>`;}
 const dia=(x,y,i)=>`${x+0.5},${y+i} ${x+1-i},${y+0.5} ${x+0.5},${y+1-i} ${x+i},${y+0.5}`;
@@ -350,7 +369,7 @@ let gemSvg=(c,sz,filled)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}">$
 const big=(h)=>`<div class="tBig">${h}</div>`;
 
 // ---------- 레트로 옷 (?skin=a 밤 미로, ?skin=b 흙 마당) · 시험용 ----------
-const SKIN=((location.search.match(/skin=([ab])/i)||[])[1]||'').toLowerCase();
+const SKIN=((location.search.match(/skin=([ab])/i)||[])[1]||(DEV&&(()=>{try{return localStorage.getItem('ms2_skin')}catch(e){return ''}})())||'').toLowerCase();
 const SK=SKIN?(function(theme){
  const PC=26;
  const LIGHT={1:'#FF8A7A',2:'#FFF08A',4:'#86B4FF',3:'#FFC071',6:'#86E39C',5:'#D193EC'},MIDL={1:'#F45E50',2:'#FFDC5C',4:'#5690F0',3:'#F9A24A',6:'#56C674',5:'#B26AD2'};
@@ -492,10 +511,11 @@ const ITEMS={
  small:{nm:'좁은 판',ds:'다음 구역 판이 6×6이 된다',p:7,k:'next'},
  double:{nm:'보석 두 배 구역',ds:'다음 구역 보석이 2개 더 나오고, 그 구역 보석은 두 배 값에 판다',p:1,k:'next'},
  probe:{nm:'탐지기 3회',ds:'칸을 눌러 그 칸에 보석이 있는지 본다(3번)',p:5,k:'hold'}};
+for(const k in ITEMS)ITEMS[k].p0=ITEMS[k].p;for(const k in CFG.items)if(ITEMS[k])ITEMS[k].p=CFG.items[k];
 const KTAG={hold:'가방',next:'다음 구역',perm:'계속',span:'5구역'};
 
 // ---------- 상태 ----------
-let peeked={},peekPick=null,peekView=null,badCell=null,G=7,zone=1,tiles=10,money=0,best=0,gems=[],cell={},hand=[0,0,0],hs=0,HN=3,phase='play',drag=null,target=null,selCell=null,reveal=false,armed=null;
+let zoneStart=null,peeked={},peekPick=null,peekView=null,badCell=null,G=7,zone=1,tiles=10,money=0,best=0,gems=[],cell={},hand=[0,0,0],hs=0,HN=3,phase='play',drag=null,target=null,selCell=null,reveal=false,armed=null;
 let bag=[],perm={},spanLeft=0,nextFx={},fx={},marks={},rowMarks={},areaMark=null,mode=null,collected=false,collecting=false,shop=null,flash=[],vanish=[];
 try{best=+(localStorage.getItem('ms2_best')||0)}catch(e){}
 const live=()=>gems.filter(g=>!g.f),done=()=>gems.filter(g=>g.f);
@@ -561,14 +581,17 @@ function draw(){
 let toastT=0;function toast(t){const e=$('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),1500);}
 
 // ---------- 구역 ----------
-function startZone(){const sp=spec(zone);G=fx.small?6:7;const n=Math.min(sp.n+(fx.double?2:0),G*G-1);
+function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.min(sp.n+(fx.double?2:0),G*G-1);
  const P=sp.c,MX=P.filter(isMix),used=new Set();gems=[];
  while(gems.length<n){const x=ri(G),y=ri(G);if(used.has(K(x,y)))continue;used.add(K(x,y));gems.push({x,y,c:(gems.length===0&&sp.nc)?sp.nc:P[ri(P.length)],f:false,lock:gems.length===0&&!!sp.nc});}
  if(MX.length){let cnt=gems.filter(g=>isMix(g.c)).length;const cand=gems.filter(g=>!g.lock&&PRIM.includes(g.c));while(cnt<sp.m&&cand.length){cand.splice(ri(cand.length),1)[0].c=MX[ri(MX.length)];cnt++;}}
+ if(fixedGems)gems=fixedGems.map(g=>({x:g.x,y:g.y,c:g.c,f:false}));
+ zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
  cell={};marks={};rowMarks={};areaMark=null;selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
- HN=perm.hand4?4:3;hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
+ HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
  draw();fit();toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''));}
-function newGame(){zone=1;tiles=10;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone();}
+function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;startZone(z.gems);}
+function newGame(){zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone();}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
@@ -579,7 +602,7 @@ function lose(){phase='lost';if(zone>best){best=zone;try{localStorage.setItem('m
  setTimeout(()=>{$('overBody').innerHTML=`<div class="oBig">${IC.zone}<b>${zone}</b></div><div class="oSub"><span class="st">${IC.tile}<b>0</b></span><span class="st">${IC.best}<b>${best}</b></span></div>`;$('over').classList.add('show');},1400);}
 function placeAt(x,y,i){const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
- if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=1+(spanLeft?1:0);tiles+=add;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
+ if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
  else{if(!(t&&fx.freeov))tiles--;if(nt)cell[k]=nt;else delete cell[k];}
  hand[i]=draw1();hs=i;afterPlace(g&&g.f);}
 function bad(x,y){badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
@@ -600,7 +623,7 @@ function offerList(){const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='per
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');}
 function renderShop(){const nx=spec(zone+1);$('shopTiles').innerHTML=`${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`${IC.coin}<b>${money}</b>`;
  $('shopNext').innerHTML=`${IC.next}<span class="st">${IC.zone}<b>${zone+1}</b></span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="st">${IC.gemW}<b>${nx.n}</b></span>${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}</span>`:''}`;
- $('tileSlotL').innerHTML=`<span class="plus">+3</span>${IC.tile}`;$('buyTile').innerHTML=`${IC.coin}2`;$('buyTile').disabled=money<2;
+ $('tileSlotL').innerHTML=`<span class="plus">+${CFG.shopGet}</span>${IC.tile}`;$('buyTile').innerHTML=`${IC.coin}${CFG.shopCost}`;$('buyTile').disabled=money<CFG.shopCost;
  $('shopItems').innerHTML=shop.items.map((id,i)=>{const it=ITEMS[id],sold=shop.bought!==null;const full=it.k==='hold'&&bag.length>=3;
   const dis=sold||money<it.p||full;return `<div class="item${shop.bought===i?' sold':''}" data-info="${i}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}<span class="tag">${KIC[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check:full?IC.bag+IC.close:IC.coin+it.p}</button></div>`;}).join('');
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(+b.dataset.buy);});document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>b.classList.toggle('open'));
@@ -608,7 +631,7 @@ function renderShop(){const nx=spec(zone+1);$('shopTiles').innerHTML=`${IC.tile}
  const icons=[...bag.map(b=>ITEM_IC[b.id]),...Object.keys(nextFx).map(k=>ITEM_IC[k]),...Object.keys(perm).map(k=>ITEM_IC[k]),...(spanLeft?[ITEM_IC.bonus]:[])];$('shopBag').innerHTML=`<span class="st">${IC.bag}<b>${bag.length}/3</b></span>`+icons.join('');}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;money-=it.p;shop.bought=i;
  if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;renderShop();}
-$('buyTile').onclick=()=>{if(money<2)return;money-=2;tiles+=3;renderShop();};
+$('buyTile').onclick=()=>{if(money<CFG.shopCost)return;money-=CFG.shopCost;tiles+=CFG.shopGet;renderShop();};
 $('reroll').onclick=()=>{const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;shop.items=offerList();renderShop();};
 $('shopGo').onclick=()=>{$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone();};
 
@@ -641,11 +664,11 @@ for(let i=0;i<4;i++){const el=$('h'+i);
  el.addEventListener('pointerup',()=>{const d=drag;endDrag((d,t)=>{armed=null;eraseAt(t.x,t.y);});if(d&&!d.mv){armed=armed==='er'?null:'er';draw();}});el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});}
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.clientX,e.clientY);if(c)boardTap(c.x,c.y);});
-$('bRef').onclick=()=>{if(phase!=='play')return;armed=null;tiles--;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
+$('bRef').onclick=()=>{if(phase!=='play')return;armed=null;tiles-=CFG.refCost;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
 $('bCollect').onclick=collect;$('retry').onclick=newGame;
 
 // ---------- 팝업, 가이드 ----------
-$('mixBtn').innerHTML=IC.mix;$('mixHead').innerHTML=IC.mix;$('erIc').innerHTML=IC.eraser;if(SK)$('er').innerHTML=SK.eraserImg();$('bRef').innerHTML=IC.refresh+`<span class="st"><small>−1</small>${IC.tile}</span>`;$('bCollect').innerHTML=sv(G24(12,12.5,20,'#E0312B'))+IC.next+IC.coin;$('shopGo').innerHTML=IC.play;$('retry').innerHTML=IC.retry;document.querySelectorAll('.popClose').forEach(b=>b.innerHTML=IC.close);
+$('mixBtn').innerHTML=IC.mix;$('mixHead').innerHTML=IC.mix;$('erIc').innerHTML=IC.eraser;if(SK)$('er').innerHTML=SK.eraserImg();$('bRef').innerHTML=IC.refresh+`<span class="st"><small>−${CFG.refCost}</small>${IC.tile}</span>`;$('bCollect').innerHTML=sv(G24(12,12.5,20,'#E0312B'))+IC.next+IC.coin;$('shopGo').innerHTML=IC.play;$('retry').innerHTML=IC.retry;document.querySelectorAll('.popClose').forEach(b=>b.innerHTML=IC.close);
 const sq=c=>SK?SK.tileImg(c,34):`<span class="sq" style="background:${FILL[c]}"></span>`;
 $('mix').innerHTML=[[1,2,3],[2,4,6],[1,4,5]].map(([a,b,r])=>`<div class="mx">${sq(a)}+${sq(b)}=${sq(r)}</div>`).join('');
 document.querySelectorAll('.pop').forEach(p=>p.addEventListener('click',e=>{if(e.target===p||e.target.closest('.popClose'))p.classList.remove('show');}));
@@ -654,10 +677,104 @@ function guide(on){$('guide').classList.toggle('show',on);}
 if(SK)SK.guide();$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms2_guide','1')}catch(e){}};
 try{if(!localStorage.getItem('ms2_guide'))guide(true);}catch(e){guide(true);}
 
-// ---------- 시험 도구 (?dev) ----------
-if(location.search.indexOf('dev')>=0){document.body.classList.add('dev');$('devTools').style.display='block';
- for(let z=1;z<=30;z++){const b=document.createElement('button');b.textContent=z;b.onclick=()=>{zone=z;startZone();};$('zbs').appendChild(b);}
- $('dMoney').onclick=()=>{money+=10;draw();};$('dTiles').onclick=()=>{tiles+=5;draw();};$('dShow').onclick=()=>{reveal=!reveal;draw();};$('dShop').onclick=openShop;}
+
+// ---------- 개발자 모드 화면 ----------
+if(DEV){(function(){
+ const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}};
+ let notes=[];try{notes=JSON.parse(LS('ms2_notes')||'[]');}catch(e){}
+ const saveNotes=()=>LS('ms2_notes',JSON.stringify(notes));
+ const CL={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};
+ const TAGS=['버그','어려움','쉬움','헷갈림','좋음','제안'];
+ const LABELS=[['start','시작 타일'],['find','찾으면 받는 타일'],['shopCost','상점 타일 칸 가격(원)'],['shopGet','상점 타일 칸 개수'],['gemP','기본색 보석 값(원)'],['gemM','섞은 색 보석 값(원)'],['hand','손의 타일 수(3~4)'],['refCost','바꾸기 비용(타일)']];
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
+ const situ=()=>`${zone}구역 · 타일 ${tiles} · 돈 ${money}원 · 보석 ${done().length}/${gems.length}`+(phase!=='play'?` · ${phase==='clear'?'클리어':phase==='lost'?'패배':phase}`:'')+($('shop').classList.contains('show')?' · 상점':'');
+ const boardSnap=()=>{const gs=gems.map(g=>`${CL[g.c]}(${g.x+1},${g.y+1})${g.f?'찾음':''}`).join(' ');const ts=Object.entries(cell).map(([k,t])=>{const [x,y]=k.split(',').map(Number);return `${CL[t]}(${x+1},${y+1})`;}).join(' ');const h=hand.slice(0,HN).map(c=>CL[c]||'-').join('');return `보석 ${gs} / 판의 타일 ${ts||'없음'} / 손 ${h}`+(bag.length?` / 가방 ${bag.map(b=>ITEMS[b.id].nm).join(',')}`:'');};
+ const cfgDiff=()=>{const a=[];for(const [k,l] of LABELS)if(CFG[k]!==CFG0[k])a.push(`${l} ${CFG[k]}`);for(const k in CFG.items)a.push(`${ITEMS[k].nm} ${CFG.items[k]}원`);return a;};
+ const skinNow=SKIN||'기본';
+ // 화면
+ const el=document.createElement('div');el.id='devPanel';el.className='full';
+ el.innerHTML=`<div class="fIn dv">
+  <div class="dvHead"><b>개발자 모드</b><button id="dvClose" aria-label="닫기">${IC.close}</button></div>
+  <div class="dvTabs"><button data-tab="memo" class="on">메모</button><button data-tab="set">설정</button><button data-tab="send">보내기</button></div>
+  <section data-sec="memo">
+   <div class="dvSitu" id="dvSitu"></div>
+   <div class="dvTags">${TAGS.map(t=>`<button data-tag="${t}">${t}</button>`).join('')}</div>
+   <textarea id="dvText" rows="4" placeholder="느낀 점, 버그, 바꾸고 싶은 것"></textarea>
+   <label class="dvChk"><input type="checkbox" id="dvSnap" checked> 판 상태 붙이기</label>
+   <button id="dvAdd" class="primary dvWide">적기</button>
+   <div id="dvList"></div>
+  </section>
+  <section data-sec="set" hidden>
+   <h4>바로 하기</h4>
+   <div class="dvRow"><input type="number" id="dvZone" min="1" max="60" value="1"><button id="dvGo">이 구역으로</button></div>
+   <div class="dvBtns"><button id="dvRestart">이 구역 처음부터</button><button id="dvNew">새 게임</button><button id="dvT5">타일 +5</button><button id="dvTm5">타일 −5</button><button id="dvM10">돈 +10</button><button id="dvShow">정답 보기</button><button id="dvShop">상점 열기</button></div>
+   <h4>아이템 바로 받기</h4>
+   <div class="dvBtns">${Object.keys(ITEMS).map(k=>`<button data-give="${k}">${ITEMS[k].nm}</button>`).join('')}</div>
+   <h4>값 바꾸기</h4>
+   <div class="dvNote">바꾼 값은 이 기기에만 저장됩니다. 시작 타일은 새 게임부터 적용됩니다.</div>
+   ${LABELS.map(([k,l])=>`<div class="dvRow"><span>${l}</span><input type="number" data-cfg="${k}" value="${CFG[k]}"><i>기본 ${CFG0[k]}</i></div>`).join('')}
+   <details><summary>아이템 가격</summary>${Object.keys(ITEMS).map(k=>`<div class="dvRow"><span>${ITEMS[k].nm}</span><input type="number" data-item="${k}" value="${ITEMS[k].p}"><i>기본 ${ITEMS[k].p0}</i></div>`).join('')}</details>
+   <div class="dvBtns"><button id="dvSave" class="primary">값 저장</button><button id="dvReset">기본값으로</button></div>
+   <h4>옷</h4>
+   <div class="dvBtns">${[['','기본'],['a','A 밤 미로'],['b','B 흙 마당']].map(([v,l])=>`<button data-skin="${v}" class="${(SKIN||'')===v?'on':''}">${l}</button>`).join('')}</div>
+   <div class="dvNote">옷을 바꾸면 게임이 새로 시작됩니다.</div>
+   <h4>개발자 모드</h4>
+   <div class="dvBtns"><button id="dvOff">이 기기에서 끄기</button></div>
+  </section>
+  <section data-sec="send" hidden>
+   <div class="dvNote" id="dvCount"></div>
+   <textarea id="dvOut" rows="10" readonly></textarea>
+   <div class="dvBtns"><button id="dvShare" class="primary">공유하기</button><button id="dvCopy">복사하기</button></div>
+   <div class="dvNote">공유하기를 누르고 Claude 앱이나 카카오톡 나와의 채팅을 고르세요. 복사하기는 대화창에 붙여 넣으면 됩니다.</div>
+   <div class="dvBtns"><button id="dvClear">메모 모두 지우기</button></div>
+  </section></div>`;
+ document.body.appendChild(el);
+ const q=s=>el.querySelector(s),qa=s=>el.querySelectorAll(s);
+ // 위 버튼
+ const btn=document.createElement('button');btn.id='devBtn';btn.textContent='DEV';btn.setAttribute('aria-label','개발자 모드');$('topBtns').prepend(btn);
+ const open=tab=>{$('dvSitu').textContent='지금: '+situ();renderList();tabTo(tab||'memo');el.classList.add('show');};
+ btn.onclick=()=>open('memo');q('#dvClose').onclick=()=>el.classList.remove('show');
+ function tabTo(t){qa('.dvTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));qa('section').forEach(s=>s.hidden=s.dataset.sec!==t);if(t==='send')renderOut();}
+ qa('.dvTabs button').forEach(b=>b.onclick=()=>tabTo(b.dataset.tab));
+ // 메모
+ const picked=new Set();qa('[data-tag]').forEach(b=>b.onclick=()=>{const t=b.dataset.tag;if(picked.has(t))picked.delete(t);else picked.add(t);b.classList.toggle('on',picked.has(t));});
+ function renderList(){q('#dvList').innerHTML=notes.length?notes.map((n,i)=>`<div class="dvNoteItem"><div><b>${i+1}.</b> ${n.tags.length?`[${esc(n.tags.join(','))}] `:''}${esc(n.text)}<div class="dvMeta">${esc(n.time)} · ${esc(n.situ)}</div></div><button data-del="${i}" aria-label="지우기">${IC.close}</button></div>`).join(''):'<div class="dvNote">아직 적은 메모가 없습니다.</div>';
+  qa('[data-del]').forEach(b=>b.onclick=()=>{notes.splice(+b.dataset.del,1);saveNotes();renderList();});}
+ q('#dvAdd').onclick=()=>{const t=q('#dvText').value.trim();if(!t&&!picked.size)return;notes.push({time:now(),situ:situ(),skin:skinNow,tags:[...picked],text:t,snap:q('#dvSnap').checked?boardSnap():''});saveNotes();q('#dvText').value='';picked.clear();qa('[data-tag]').forEach(b=>b.classList.remove('on'));renderList();toastDev('메모를 적었습니다');};
+ // 보내기
+ function outText(){const d=cfgDiff();let s=`[Mix & Seek 피드백] 메모 ${notes.length}개 · 옷 ${skinNow}\n`;if(d.length)s+=`바꾼 값: ${d.join(' · ')}\n`;
+  notes.forEach((n,i)=>{s+=`\n${i+1}) ${n.time} · ${n.situ}\n${n.tags.length?`[${n.tags.join(',')}] `:''}${n.text}\n`;if(n.snap)s+=`판: ${n.snap}\n`;});return s;}
+ function renderOut(){q('#dvCount').textContent=`보낼 메모 ${notes.length}개`;q('#dvOut').value=outText();}
+ q('#dvShare').onclick=async()=>{const t=outText();if(navigator.share){try{await navigator.share({text:t});return;}catch(e){if(e&&e.name==='AbortError')return;}}copy(t);};
+ q('#dvCopy').onclick=()=>copy(outText());
+ async function copy(t){try{await navigator.clipboard.writeText(t);toastDev('복사했습니다');}catch(e){const a=q('#dvOut');a.removeAttribute('readonly');a.focus();a.select();try{document.execCommand('copy');toastDev('복사했습니다');}catch(e2){toastDev('글을 길게 눌러 복사하세요');}a.setAttribute('readonly','');}}
+ q('#dvClear').onclick=()=>{if(!notes.length)return;if(!confirm('메모를 모두 지울까요?'))return;notes=[];saveNotes();renderOut();renderList();};
+ // 바로 하기
+ const close=()=>el.classList.remove('show');
+ const shut=()=>{$('shop').classList.remove('show');$('over').classList.remove('show');};
+ q('#dvGo').onclick=()=>{const z=Math.max(1,Math.min(60,+q('#dvZone').value||1));shut();zone=z;startZone();close();};
+ q('#dvRestart').onclick=()=>{shut();restartZone();close();};
+ q('#dvNew').onclick=()=>{newGame();close();};
+ q('#dvT5').onclick=()=>{tiles+=5;draw();toastDev('타일 '+tiles);};q('#dvTm5').onclick=()=>{tiles=Math.max(1,tiles-5);draw();toastDev('타일 '+tiles);};
+ q('#dvM10').onclick=()=>{money+=10;draw();toastDev('돈 '+money+'원');};
+ q('#dvShow').onclick=()=>{reveal=!reveal;draw();close();};
+ q('#dvShop').onclick=()=>{close();openShop();};
+ qa('[data-give]').forEach(b=>b.onclick=()=>{const id=b.dataset.give,it=ITEMS[id];
+  if(it.k==='hold'){if(bag.length>=3){toastDev('가방이 가득 찼습니다');return;}bag.push({id,uses:id==='probe'?3:0});}
+  else if(it.k==='next'){fx[id]=true;if(id==='peek')fx.peek=3;if(id==='row')mode='row';toastDev(it.nm+': 이번 구역에 켰습니다');}
+  else if(it.k==='perm'){perm[id]=true;if(id==='hand4'){HN=Math.min(4,CFG.hand+1);}}
+  else if(it.k==='span')spanLeft=5;
+  draw();if(it.k!=='next')toastDev(it.nm+' 받음');});
+ // 값 바꾸기
+ q('#dvSave').onclick=()=>{qa('[data-cfg]').forEach(i=>{const v=+i.value;if(isFinite(v))CFG[i.dataset.cfg]=v;});CFG.hand=Math.max(3,Math.min(4,CFG.hand));
+  qa('[data-item]').forEach(i=>{const k=i.dataset.item,v=+i.value;if(!isFinite(v))return;if(v===ITEMS[k].p0)delete CFG.items[k];else CFG.items[k]=v;ITEMS[k].p=v;});
+  LS('ms2_cfg',JSON.stringify(CFG));HN=Math.min(4,CFG.hand+(perm.hand4?1:0));draw();toastDev('값을 저장했습니다');};
+ q('#dvReset').onclick=()=>{LS('ms2_cfg',null);Object.assign(CFG,CFG0,{items:{}});for(const k in ITEMS)ITEMS[k].p=ITEMS[k].p0;qa('[data-cfg]').forEach(i=>i.value=CFG[i.dataset.cfg]);qa('[data-item]').forEach(i=>i.value=ITEMS[i.dataset.item].p);HN=Math.min(4,CFG.hand+(perm.hand4?1:0));draw();toastDev('기본값으로 돌렸습니다');};
+ qa('[data-skin]').forEach(b=>b.onclick=()=>{LS('ms2_skin',b.dataset.skin||null);location.href=location.pathname+'?v='+Date.now();});
+ q('#dvOff').onclick=()=>{LS('ms2_dev',null);location.href=location.pathname+'?v='+Date.now();};
+ let tt=0;function toastDev(t){let e=$('dvToast');if(!e){e=document.createElement('div');e.id='dvToast';document.body.appendChild(e);}e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1300);}
+})();}
 
 function fit(){const w=$('boardWrap'),sz=Math.max(120,Math.floor(Math.min(w.clientWidth,w.clientHeight)));$('fld').style.width=sz+'px';$('fld').style.height=sz+'px';}
 window.addEventListener('resize',fit);if(window.visualViewport)visualViewport.addEventListener('resize',fit);
