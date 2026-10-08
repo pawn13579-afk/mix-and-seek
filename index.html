@@ -274,6 +274,23 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .gLegend li{display:block !important;position:relative;padding-left:28px}.gLegend li .gNum{position:absolute;left:0;top:2px}
 .sk #guide p,.sk #guide li{font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:1.6}.sk #guide .gBig{font-size:16px}
 .shopBag .own i{position:static;background:none;color:var(--text-muted);min-width:0;height:auto;line-height:1.4;padding:0;font-size:12px;font-weight:400;border-radius:0}
+/* 튜토리얼 */
+#coach{position:fixed;inset:0;z-index:60;display:none}
+#coach.show{display:block}
+#coach.pass{pointer-events:none}#coach.pass #coachBub{pointer-events:auto}
+#coachHole{position:fixed;border:3px solid #F6C430;border-radius:10px;pointer-events:none}
+#coachHole.dim{box-shadow:0 0 0 9999px rgba(0,0,0,0.62)}
+#coachBub{position:fixed;left:50%;transform:translateX(-50%);width:min(340px,calc(100vw - 32px));background:#FFFFFF;color:#1F1E1C;border-radius:14px;padding:14px 16px 10px;box-shadow:0 6px 20px rgba(0,0,0,0.35);font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:17px;line-height:1.55;text-align:center}
+#coachBtns{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+#coachOff{background:none;border:none;box-shadow:none;color:#888780;font-size:14px;padding:6px 4px}
+#coachOk{font-size:15px;padding:8px 18px}
+#coachFinger{position:fixed;left:0;top:0;width:30px;height:30px;color:#FFFFFF;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.8));animation:fing 1.8s ease-in-out infinite}
+#coachFinger .ic{width:30px;height:30px}
+@keyframes fing{0%{left:var(--x0);top:var(--y0);opacity:0}15%{left:var(--x0);top:var(--y0);opacity:1}80%{left:var(--x1);top:var(--y1);opacity:1}100%{left:var(--x1);top:var(--y1);opacity:0}}
+.cTile{display:inline-block;vertical-align:-5px}.cTile img,.cTile svg{display:block}
+.sk #coachBub{border-radius:0;border:3px solid #F6C430;background:#000000;color:#FFFFFF}
+.sk #coachHole{border-radius:0}
+.sk #coachOk{color:#1A1A1A}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -614,6 +631,7 @@ function draw(){
  if(nudge&&phase==='play'&&zone===1&&!Object.keys(cell).length&&!drag){const c=Math.floor(G/2);s+=`<polygon class="nudgeCell" points="${dia(c,c,0.02)}" fill="#F6C430" fill-opacity="0.25" stroke="#F6C430" stroke-width="0.08"/>`;}
  if(badCell)s+=`<polygon points="${dia(badCell.x,badCell.y,0.02)}" fill="none" stroke="#E0312B" stroke-width="0.09"/>`;
  f.innerHTML=s;
+ if(typeof TUT!=='undefined')TUT.place();
  $('root').classList.toggle('nudge',nudge&&phase==='play'&&zone===1);
  // 위 정보
  $('stat').innerHTML=`<span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.tile}<b>${tiles}</b></span><span class="st">${IC.coin}<b id="moneyNum">${money}</b></span><span class="st muted">${IC.best}${best}</span>`;
@@ -647,27 +665,27 @@ function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.mi
  zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
  cell={};marks={};rowMarks={};areaMark=null;selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
  HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
- draw();fit();toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''),2400);}
+ draw();fit();setTimeout(tutZoneStart,0);toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''),2400);}
 function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;startZone(z.gems);}
 function newGame(){zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone();}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
-  setTimeout(()=>{if(phase==='clear'&&!collecting)toast(big(IC.zone+zone+IC.check)+`<div class="tDown">${IC.next}</div>`,0);},300);}
+  tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting)toast(big(IC.zone+zone+IC.check)+`<div class="tDown">${IC.next}</div>`,0);},300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function lose(){phase='lost';if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
  setTimeout(()=>{$('overBody').innerHTML=`<div class="oBig">${IC.zone}<b>${zone}</b></div><div class="oSub"><span class="st">${IC.tile}<b>0</b></span><span class="st">${IC.best}<b>${best}</b></span></div>`;$('over').classList.add('show');},1400);}
-function placeAt(x,y,i){if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
+function placeAt(x,y,i){TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
  if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
  else{if(!(t&&fx.freeov))tiles--;if(nt)cell[k]=nt;else delete cell[k];}
- hand[i]=draw1();hs=i;afterPlace(g&&g.f);}
+ hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
 function bad(x,y){badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
 function eraseAt(x,y){const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
-function collect(){if(collecting||collected)return;collecting=true;toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
+function collect(){if(collecting||collected)return;collecting=true;TUT.finish('sell');toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
  const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();openShop();},2200);},420);return;}
   const g=list[i++],v=(price(g.c)+(perm.value&&isMix(g.c)?1:0))*(fx.double?2:1);earned+=v;
   const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
@@ -678,7 +696,7 @@ function collect(){if(collecting||collected)return;collecting=true;toastOff();dr
 
 // ---------- 상점 ----------
 function offerList(){const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
-function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');}
+function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');tutShop();}
 const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'계속',span:'5스테이지 동안'};
 function renderShop(){const nx=spec(zone+1);
  $('shopTiles').innerHTML=`<span class="lb">남은 타일</span>${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`<span class="lb">돈</span>${IC.coin}<b>${money}</b><span class="lb">원</span>`;
@@ -738,9 +756,9 @@ $('mixBtn').onclick=()=>$('mixPop').classList.add('show');
 // ---------- 가이드 세 쪽 ----------
 const tileIco=(c,sz)=>SK?SK.tileImg(c,sz):`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}"><polygon points="${dia(0,0,0.04)}" fill="${FILL[c]}"/></svg>`;
 const eraserIco=sz=>SK?`<img class="px" src="${SK.eraserURL()}" width="${sz}" height="${sz}" alt="">`:`<span class="gEr" style="width:${sz}px;height:${sz}px">${IC.eraser}</span>`;
-let gPage=1;const G_PAGES=3;
+let gPage=1;const G_PAGES=2;
 (function buildGuide(){const gIn=document.querySelector('#guide .gIn'),close=$('guideClose');
- const p2=document.createElement('div');p2.className='gPage';p2.dataset.p='2';[...gIn.childNodes].forEach(n=>{if(n!==close)p2.appendChild(n);});
+ const p2=document.createElement('div');p2.className='gPage';p2.dataset.p='1';[...gIn.childNodes].forEach(n=>{if(n!==close)p2.appendChild(n);});
  const nb=n=>`<i class="gNum">${n}</i>`;
  const p1=document.createElement('div');p1.className='gPage';p1.dataset.p='1';
  p1.innerHTML=`<h2>화면 보기</h2>
@@ -762,7 +780,7 @@ let gPage=1;const G_PAGES=3;
   <li>${nb(9)}<b>바꾸기</b> 손의 타일을 모두 새로 받습니다(타일 1개)</li>
   <li>${nb(10)}<b>색 조합 · 설명</b> 색 섞는 법, 이 설명 다시 보기</li>
  </ol>`;
- const p3=document.createElement('div');p3.className='gPage';p3.dataset.p='3';
+ const p3=document.createElement('div');p3.className='gPage';p3.dataset.p='2';
  p3.innerHTML=`<h2>섞기와 상점</h2>
  <p class="gBig">타일을 겹쳐 놓으면 <b>색이 섞입니다</b></p>
  <div class="gMixRows">${[[1,2,3],[2,4,6],[1,4,5]].map(([a,b,r])=>`<div>${tileIco(a,40)}<b>+</b>${tileIco(b,40)}<b>=</b>${tileIco(r,40)}</div>`).join('')}</div>
@@ -777,16 +795,55 @@ let gPage=1;const G_PAGES=3;
  <p class="gNote">기본색 보석 ${CFG.gemP}원, 섞은 색 보석 ${CFG.gemM}원. 상점에서 타일 ${CFG.shopGet}개가 ${CFG.shopCost}원입니다.</p>`;
  const nav=document.createElement('div');nav.className='gNav';nav.innerHTML=`<button id="gPrev" aria-label="이전">${IC.next}</button><span id="gDots"></span><button id="gNext" class="primary">다음</button>`;
  const skip=document.createElement('button');skip.id='gSkip';skip.setAttribute('aria-label','닫기');skip.innerHTML=IC.close;
- gIn.prepend(skip);gIn.appendChild(p1);gIn.appendChild(p2);gIn.appendChild(p3);gIn.appendChild(nav);close.style.display='none';
+ gIn.prepend(skip);gIn.appendChild(p2);gIn.appendChild(p3);gIn.appendChild(nav);close.style.display='none';
 })();
 function gShow(p){gPage=Math.max(1,Math.min(G_PAGES,p));document.querySelectorAll('#guide .gPage').forEach(e=>e.hidden=+e.dataset.p!==gPage);
  $('gDots').innerHTML=Array.from({length:G_PAGES},(_,i)=>`<i class="${i+1===gPage?'on':''}"></i>`).join('');$('gPrev').style.visibility=gPage>1?'visible':'hidden';
  $('gNext').textContent=gPage<G_PAGES?'다음':'시작하기';$('guide').scrollTop=0;}
 function guideDone(){$('guide').classList.remove('show');try{localStorage.setItem('ms2_guide','1')}catch(e){}}
 $('gPrev').onclick=()=>gShow(gPage-1);$('gNext').onclick=()=>{if(gPage<G_PAGES)gShow(gPage+1);else guideDone();};$('gSkip').onclick=guideDone;
+// ---------- 따라 하는 튜토리얼 (각 장면은 이 기기에서 한 번만) ----------
+const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')||'{}');}catch(e){}
+ const save=()=>{try{localStorage.setItem('ms2_tut',JSON.stringify(done));}catch(e){}};
+ let cur=null,queue=[];
+ const box=document.createElement('div');box.id='coach';box.innerHTML='<div id="coachHole"></div><div id="coachFinger"></div><div id="coachBub"><div id="coachTxt"></div><div id="coachBtns"><button id="coachOff">그만 보기</button><button id="coachOk" class="primary">알겠어요</button></div></div>';
+ document.body.appendChild(box);
+ const hole=$('coachHole'),bub=$('coachBub'),fing=$('coachFinger');fing.innerHTML=IC.tap;
+ function rectOf(t){if(!t)return null;if(t.cell){const f=$('fld').getBoundingClientRect(),m=SK?SK.margin:0.1,u=f.width/(G+m*2);return {left:f.left+(t.cell[0]+m)*u,top:f.top+(t.cell[1]+m)*u,width:u,height:u};}
+  const e=typeof t==='string'?$(t):t;if(!e||!e.offsetParent&&e.id!=='shop')return null;return e.getBoundingClientRect();}
+ function place(){if(!cur)return;const r=rectOf(cur.target);const pad=6;
+  if(r){hole.style.display='block';Object.assign(hole.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});}else hole.style.display='none';
+  hole.classList.toggle('dim',!cur.action);box.classList.toggle('pass',!!cur.action);
+  const vh=innerHeight,bh=bub.offsetHeight||90;let top;
+  if(!r)top=vh/2-bh/2;else if(r.top-pad-bh-14>8)top=r.top-pad-bh-14;else top=Math.min(vh-bh-8,r.top+r.height+pad+14);
+  bub.style.top=top+'px';
+  if(cur.finger){const a=rectOf(cur.finger[0]),b=rectOf(cur.finger[1]);if(a&&b){fing.style.display='block';fing.style.setProperty('--x0',(a.left+a.width/2-14)+'px');fing.style.setProperty('--y0',(a.top+a.height/2-14)+'px');fing.style.setProperty('--x1',(b.left+b.width/2-14)+'px');fing.style.setProperty('--y1',(b.top+b.height/2-14)+'px');}else fing.style.display='none';}else fing.style.display='none';}
+ function show(st){cur=st;$('coachTxt').innerHTML=st.text;$('coachOk').style.display=st.action?'none':'';box.classList.add('show');place();requestAnimationFrame(place);}
+ function next(){box.classList.remove('show');cur=null;const n=queue.shift();if(n)setTimeout(()=>{if(!done[n.id]||n.force)show(n);else next();},250);}
+ function finish(id){if(cur&&cur.id===id){done[id]=1;save();next();}else{queue=queue.filter(q=>q.id!==id);}}
+ $('coachOk').onclick=e=>{e.stopPropagation();if(cur){done[cur.id]=1;save();}next();};
+ $('coachOff').onclick=e=>{e.stopPropagation();done.all=1;save();queue=[];box.classList.remove('show');cur=null;};
+ box.addEventListener('click',e=>{if(cur&&!cur.action&&e.target===box){done[cur.id]=1;save();next();}});
+ window.addEventListener('resize',place);
+ return {
+  want(st,delay){if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}setTimeout(()=>{if(done.all||done[st.id])return;if(cur){queue.push(st);return;}show(st);},delay||0);},
+  finish,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
+  reset(){done={};save();queue=[];cur=null;box.classList.remove('show');},place};
+})();
+const tileTxt=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
+function tutZoneStart(){
+ if(zone===1&&!TUT.seen('place'))TUT.want({id:'place',action:true,target:'handRow',finger:['h0',{cell:[Math.floor(G/2),Math.floor(G/2)]}],text:'손의 타일을 판으로 끌어다 놓아 보세요'},900);
+ else if(zone>=2&&!TUT.seen('tools'))TUT.want({id:'tools',target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`},2600);
+ if(gems.some(g=>isMix(g.c))&&!TUT.seen('mix')){const c=gems.find(g=>isMix(g.c)).c,p=PRIM.filter(q=>c&q);TUT.want({id:'mix',target:'gemRow',text:`${tileTxt(c)} ${NAME[c]} 보석은 ${tileTxt(p[0])}${NAME[p[0]]}과 ${tileTxt(p[1])}${NAME[p[1]]}을<br>같은 칸에 겹쳐 놓아야 찾아요`},2600);}
+ if(bag.length&&!TUT.seen('bag'))TUT.want({id:'bag',target:'bag',text:'산 아이템은 여기를 눌러 써요'},2600);}
+function tutPlaced(x,y,found){TUT.finish('place');
+ if(found){TUT.want({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
+ else if(cell[K(x,y)])TUT.want({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
+function tutClear(){TUT.want({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요'},1200);}
+function tutShop(){TUT.want({id:'shopTile',target:document.querySelector('#shop .tileSlot'),text:'돈으로 <b>타일</b>을 살 수 있어요. 몇 번이든 살 수 있어요'},300);TUT.want({id:'shopItem',target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>카드의 설명을 보고 골라요'},350);TUT.want({id:'shopReroll',target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'},400);TUT.want({id:'shopGo',target:'shopNext',text:'다음 스테이지에 나올 보석을 보고<br>준비가 되면 <b>다음 스테이지</b>를 눌러요'},450);}
 function guide(on){$('guide').classList.toggle('show',on);if(on)gShow(1);}
 if(SK)SK.guide();$('guideBtn').onclick=()=>guide(true);$('guideClose').onclick=()=>{guide(false);try{localStorage.setItem('ms2_guide','1')}catch(e){}};
-try{if(!localStorage.getItem('ms2_guide'))guide(true);}catch(e){guide(true);}
+
 
 
 // ---------- 개발자 모드 화면 ----------
@@ -831,7 +888,7 @@ if(DEV){(function(){
    <div class="dvBtns">${[['','기본'],['a','A 밤 미로'],['b','B 흙 마당']].map(([v,l])=>`<button data-skin="${v}" class="${(SKIN||'')===v?'on':''}">${l}</button>`).join('')}</div>
    <div class="dvNote">옷을 바꾸면 게임이 새로 시작됩니다.</div>
    <h4>개발자 모드</h4>
-   <div class="dvBtns"><button id="dvOff">이 기기에서 끄기</button></div>
+   <div class="dvBtns"><button id="dvTut">튜토리얼 처음부터</button><button id="dvOff">이 기기에서 끄기</button></div>
   </section>
   <section data-sec="send" hidden>
    <div class="dvNote" id="dvCount"></div>
@@ -883,6 +940,7 @@ if(DEV){(function(){
   LS('ms2_cfg',JSON.stringify(CFG));HN=Math.min(4,CFG.hand+(perm.hand4?1:0));draw();toastDev('값을 저장했습니다');};
  q('#dvReset').onclick=()=>{LS('ms2_cfg',null);Object.assign(CFG,CFG0,{items:{}});for(const k in ITEMS)ITEMS[k].p=ITEMS[k].p0;qa('[data-cfg]').forEach(i=>i.value=CFG[i.dataset.cfg]);qa('[data-item]').forEach(i=>i.value=ITEMS[i.dataset.item].p);HN=Math.min(4,CFG.hand+(perm.hand4?1:0));draw();toastDev('기본값으로 돌렸습니다');};
  qa('[data-skin]').forEach(b=>b.onclick=()=>{LS('ms2_skin',b.dataset.skin||null);location.href=location.pathname+'?v='+Date.now();});
+ q('#dvTut').onclick=()=>{TUT.reset();try{localStorage.removeItem('ms2_nudge')}catch(e){}nudge=true;close();newGame();};
  q('#dvOff').onclick=()=>{LS('ms2_dev',null);location.href=location.pathname+'?v='+Date.now();};
  let tt=0;function toastDev(t){let e=$('dvToast');if(!e){e=document.createElement('div');e.id='dvToast';document.body.appendChild(e);}e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1300);}
 })();}
