@@ -373,6 +373,7 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 @keyframes plusUp{0%{opacity:0;transform:translateY(6px)}20%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
 #shopTiles.bump b{display:inline-block;animation:bump .4s ease-out}
 #sndBtn{width:42px;height:38px;padding:0;display:flex;align-items:center;justify-content:center}#sndBtn .ic{width:24px;height:24px}
+.lbUp{display:block;font-size:12px;color:#E8392F;font-weight:700;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}.tileSlot>div.st{flex-wrap:wrap}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -469,7 +470,7 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 <script>
 // ---------- 개발자 모드 설정 (주소에 ?dev 한 번 붙이면 이 기기에서 계속 켜짐, ?dev=0 으로 끔) ----------
 const DEV=(()=>{const q=location.search;try{if(/[?&]dev=0/.test(q)){localStorage.removeItem('ms2_dev');return false;}if(/[?&]dev\b/.test(q)){localStorage.setItem('ms2_dev','1');return true;}return localStorage.getItem('ms2_dev')==='1';}catch(e){return /[?&]dev\b/.test(q);}})();
-const CFG0={start:10,find:1,shopCost:2,shopGet:3,gemP:1,gemM:2,hand:3,refCost:1,items:{}};
+const CFG0={start:10,find:1,shopCost:2,shopStep:4,shopInc:1,shopGet:3,gemP:1,gemM:2,hand:3,refCost:1,items:{}};
 const CFG=(()=>{let c={};if(DEV)try{c=JSON.parse(localStorage.getItem('ms2_cfg')||'{}');}catch(e){}return Object.assign({},CFG0,c,{items:Object.assign({},c.items||{})});})();
 const FILL={1:'#E0312B',2:'#F2C12E',4:'#2A6FDB',3:'#F07F1A',6:'#2E9E4F',5:'#8E44AD'},INK={1:'#FFFFFF',2:'#000000',4:'#FFFFFF',3:'#000000',6:'#FFFFFF',5:'#FFFFFF'};
 const NAME={1:'빨강',2:'노랑',4:'파랑',3:'주황',6:'초록',5:'보라'},PRIM=[1,2,4],MIXC=[3,6,5],ALL=[1,2,4,3,6,5];
@@ -809,10 +810,11 @@ function collect(){if(collecting||collected)return;collecting=true;TUT.finish('s
 function offerList(){{const f=tutShopFix();if(f)return f.items.slice();}const ok=Object.keys(ITEMS).filter(id=>!(ITEMS[id].k==='perm'&&perm[id])&&!(id==='bonus'&&spanLeft));const r=[];while(r.length<3&&ok.length)r.push(ok.splice(ri(ok.length),1)[0]);return r;}
 function openShop(){shop={items:offerList(),bought:null,rr:0};renderShop();$('shop').classList.add('show');tutShop();}
 const KTAG2={hold:'가방에 넣어 두고 쓰기',next:'다음 스테이지에서만',perm:'계속',span:'5스테이지 동안'};
+function tileCost(z){return CFG.shopCost+Math.floor((Math.max(1,z)-1)/Math.max(1,CFG.shopStep))*CFG.shopInc;}
 function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1);
  $('shopTiles').innerHTML=`<span class="lb">남은 타일</span>${IC.tile}<b>${tiles}</b>`;$('shopMoney').innerHTML=`<span class="lb">돈</span>${IC.coin}<b>${money}</b><span class="lb">원</span>`;
  $('shopNext').innerHTML=`<span class="lb">다음</span><span class="st">${IC.zone}<b>${zone+1}</b></span><span class="lb">스테이지</span><span class="st">${nx.c.map(c=>gemSvg(c,22,false)).join('')}</span><span class="lb">보석 <b>${nx.n}</b>개</span>${nx.nc?`<span class="st">${IC.spark}${gemSvg(nx.nc,24)}<span class="lb">새 색</span></span>`:''}`;
- $('tileSlotL').innerHTML=`${IC.tile}<span class="lbB">타일 ${CFG.shopGet}개 사기</span>`;$('buyTile').innerHTML=`${IC.coin}${CFG.shopCost}원`;$('buyTile').disabled=money<CFG.shopCost;
+ {const tc=tileCost(zone),nc=tileCost(zone+1);$('tileSlotL').innerHTML=`${IC.tile}<span class="lbB">타일 ${CFG.shopGet}개 사기</span>${nc>tc?`<span class="lbUp">다음 상점부터 ${nc}원</span>`:''}`;$('buyTile').innerHTML=`${IC.coin}${tc}원`;$('buyTile').disabled=money<tc;}
  $('shopItems').innerHTML=shop.items.map((id,i)=>{const it=ITEMS[id],sold=shop.bought!==null;const full=it.k==='hold'&&bag.length>=3;
   const dis=sold||money<it.p||full||!!(tutShopFix()&&id!==tutShopFix().must);return `<div class="item${shop.bought===i?' sold':''}"><div class="iIc">${ITEM_IC[id]}</div><div class="txt"><div class="nm">${it.nm}</div><div class="tag">${KIC[it.k]}<span>${KTAG2[it.k]}</span></div><div class="ds">${it.ds}</div></div><button data-buy="${i}" ${dis?'disabled':''}>${shop.bought===i?IC.check+'샀음':full?IC.bag+'가득':IC.coin+it.p+'원'}</button></div>`;}).join('');
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=e=>{e.stopPropagation();buy(+b.dataset.buy);});
@@ -826,7 +828,7 @@ function shopFlash(t){let e=$('shopToast');if(!e){e=document.createElement('div'
 function shopBought(i,id,from){SFX.buy();const card=document.querySelectorAll('#shopItems .item')[i];if(card){card.classList.add('justBought');}shopFlash(`${ITEM_IC[id]}<b>${ITEMS[id].nm}</b><span>구입!</span>`);
  const own=[...document.querySelectorAll('#shopBag .own')].pop();if(from&&own){const to=own.getBoundingClientRect(),f=document.createElement('div');f.className='flyItem';f.innerHTML=ITEM_IC[id];f.style.cssText=`left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px`;document.body.appendChild(f);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${to.left-from.left}px,${to.top-from.top}px) scale(0.5)`;f.style.opacity='0.3';}));setTimeout(()=>{f.remove();own.classList.add('justBought');},650);}}
-$('buyTile').onclick=()=>{if(money<CFG.shopCost)return;TUT.finish('sh_tile');money-=CFG.shopCost;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${CFG.shopCost}원)`);SFX.buy();renderShop();const tb=$('shopTiles');if(tb){tb.classList.remove('bump');void tb.offsetWidth;tb.classList.add('bump');const r=tb.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+CFG.shopGet;p.style.left=(r.right-10)+'px';p.style.top=(r.top)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);}const sl=document.querySelector('#shop .tileSlot');if(sl){sl.classList.remove('justBought');void sl.offsetWidth;sl.classList.add('justBought');}};
+$('buyTile').onclick=()=>{const tc=tileCost(zone);if(money<tc)return;TUT.finish('sh_tile');money-=tc;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${tc}원)`);SFX.buy();renderShop();const tb=$('shopTiles');if(tb){tb.classList.remove('bump');void tb.offsetWidth;tb.classList.add('bump');const r=tb.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+CFG.shopGet;p.style.left=(r.right-10)+'px';p.style.top=(r.top)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);}const sl=document.querySelector('#shop .tileSlot');if(sl){sl.classList.remove('justBought');void sl.offsetWidth;sl.classList.add('justBought');}};
 $('reroll').onclick=()=>{if(tutShopFix())return;const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;PLOG.shop(`진열 바꾸기(${cost}원)`);shop.items=offerList();renderShop();};
 $('shopGo').onclick=()=>{if(tutShopFix()&&shop.bought===null)return;$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
 
@@ -908,7 +910,7 @@ let gPage=1;const G_PAGES=2;
   <div class="gArr">${IC.next}</div>
   <div><div class="gFlowIc">${tileIco(2,26)}${ITEM_IC.lucky}</div><p>상점에서 타일과<br>아이템을 삽니다</p></div>
  </div>
- <p class="gNote">기본색 보석 ${CFG.gemP}원, 섞은 색 보석 ${CFG.gemM}원. 상점에서 타일 ${CFG.shopGet}개가 ${CFG.shopCost}원입니다.</p>`;
+ <p class="gNote">기본색 보석 ${CFG.gemP}원, 섞은 색 보석 ${CFG.gemM}원. 상점에서 타일 ${CFG.shopGet}개는 처음 ${CFG.shopCost}원이고 ${CFG.shopStep}스테이지마다 ${CFG.shopInc}원씩 올라요.</p>`;
  const nav=document.createElement('div');nav.className='gNav';nav.innerHTML=`<button id="gPrev" aria-label="이전">${IC.next}</button><span id="gDots"></span><button id="gNext" class="primary">다음</button>`;
  const skip=document.createElement('button');skip.id='gSkip';skip.setAttribute('aria-label','닫기');skip.innerHTML=IC.close;
  gIn.prepend(skip);gIn.appendChild(p2);gIn.appendChild(p3);gIn.appendChild(nav);close.style.display='none';
@@ -995,7 +997,7 @@ function tutScriptStage3(){tutScript=true;tutHelp=false;tutFloor();const st=(id,
 function tutShopDetailed(){money=Math.max(money,0)+8;renderShop();const it1=document.querySelector('#shopItems .item');
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
  S('sh_money',{target:'shopMoney',text:'보석을 팔아 번 <b>돈</b>이에요.<br>기본색 보석 1원, 섞은 색 보석 2원.<br>연습이니 <b>8원</b>을 더 드렸어요'});
- S('sh_tile',{action:true,target:document.querySelector('#shop .tileSlot'),text:`남은 타일이 모자라면 여기서 사요.<br><b>${CFG.shopCost}원에 타일 ${CFG.shopGet}개</b>, 몇 번이든 살 수 있어요.<br>버튼을 눌러 한 번 사 보세요`});
+ S('sh_tile',{action:true,target:document.querySelector('#shop .tileSlot'),text:`남은 타일이 모자라면 여기서 사요.<br>지금은 <b>${tileCost(zone)}원에 타일 ${CFG.shopGet}개</b>, 몇 번이든 살 수 있어요.<br>${CFG.shopStep}스테이지마다 ${CFG.shopInc}원씩 비싸져요. 한 번 사 보세요`});
  S('sh_card',{target:it1,text:'<b>아이템 카드</b>예요.<br>위에서부터 이름, 언제 효과가 나는지,<br>하는 일이고, 오른쪽이 가격이에요'});
  S('sh_kinds',{target:'shopItems',text:'아이템은 효과가 나는 때가 네 가지예요.<br><b>가방</b>: 넣어 두고 원할 때 꺼내 써요<br><b>다음 스테이지에서만</b>: 다음 판에 저절로<br><b>5스테이지 동안</b> · <b>계속</b>: 그동안 저절로'});
  S('sh_buy',{action:true,target:it1,text:'한 번에 <b>하나만</b> 살 수 있어요.<br>이번엔 가방 아이템 <b>탐지기</b>를 사 보세요'});
@@ -1120,7 +1122,7 @@ if(DEV){(function(){
  const saveNotes=()=>LS('ms2_notes',JSON.stringify(notes));
  const CL={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};
  const TAGS=['버그','어려움','쉬움','헷갈림','좋음','제안'];
- const LABELS=[['start','시작 타일'],['find','찾으면 받는 타일'],['shopCost','상점 타일 칸 가격(원)'],['shopGet','상점 타일 칸 개수'],['gemP','기본색 보석 값(원)'],['gemM','섞은 색 보석 값(원)'],['hand','손의 타일 수(3~4)'],['refCost','바꾸기 비용(타일)']];
+ const LABELS=[['start','시작 타일'],['find','찾으면 받는 타일'],['shopCost','상점 타일 칸 처음 가격(원)'],['shopStep','가격이 오르는 간격(스테이지)'],['shopInc','한 번에 오르는 값(원)'],['shopGet','상점 타일 칸 개수'],['gemP','기본색 보석 값(원)'],['gemM','섞은 색 보석 값(원)'],['hand','손의 타일 수(3~4)'],['refCost','바꾸기 비용(타일)']];
  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
  const situ=()=>`스테이지 ${zone} · 타일 ${tiles} · 돈 ${money}원 · 보석 ${done().length}/${gems.length}`+(phase!=='play'?` · ${phase==='clear'?'클리어':phase==='lost'?'패배':phase}`:'')+($('shop').classList.contains('show')?' · 상점':'');
