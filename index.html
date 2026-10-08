@@ -356,6 +356,22 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .tutQuit{margin-left:auto;font-size:13px;padding:5px 10px;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 #shopBag .tutQuit{margin-left:0;margin-top:4px}
 #gemRow .tutQuit{position:relative;z-index:70}
+/* 상점 구입 표시 */
+#shopToast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(0.8);z-index:30;background:rgba(20,20,20,0.92);color:#fff;border:3px solid #F6C430;border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:10px;font-size:20px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#shopToast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#shopToast .ic{width:36px;height:36px}#shopToast span{color:#F6C430;font-weight:700}
+.sk #shopToast{border-radius:0}
+.justBought{animation:boughtFlash 1s ease-out}
+@keyframes boughtFlash{0%{box-shadow:0 0 0 0 rgba(246,196,48,0.9);border-color:#F6C430}40%{box-shadow:0 0 0 8px rgba(246,196,48,0.5);border-color:#F6C430}100%{box-shadow:0 0 0 0 rgba(246,196,48,0)}}
+.item.sold.justBought{opacity:1}
+.item.sold{position:relative}
+.item.sold::after{content:"구입";position:absolute;right:86px;top:50%;transform:translateY(-50%) rotate(-12deg);border:3px solid #E8392F;color:#E8392F;font-weight:700;font-size:16px;padding:2px 8px;border-radius:6px;font-family:system-ui,"Malgun Gothic",sans-serif;background:rgba(0,0,0,0.25)}
+.item.sold{opacity:0.85}
+.flyItem{position:fixed;z-index:31;pointer-events:none;transition:transform .6s cubic-bezier(.5,0,.75,0),opacity .6s}
+.flyItem .ic{width:100%;height:100%}
+.plusUp{position:fixed;z-index:31;color:#2FA552;font-weight:700;font-size:22px;pointer-events:none;animation:plusUp .9s ease-out forwards;font-family:system-ui,sans-serif}
+@keyframes plusUp{0%{opacity:0;transform:translateY(6px)}20%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+#shopTiles.bump b{display:inline-block;animation:bump .4s ease-out}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -740,7 +756,7 @@ function newGame(){runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];pe
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
-  tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting)toast(`<div class="tClear">스테이지 클리어!</div>`+big(IC.zone+zone+IC.check),0);},300);}
+  tutClear();setTimeout(()=>{if(phase==='clear'&&!collecting)toast(`<div class="tClear">스테이지 클리어!</div>`+big(IC.zone+zone+IC.check),0);},foundG?1600:300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function lose(){phase='lost';saveRun();PLOG.end();if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
@@ -779,8 +795,12 @@ function renderShop(){setTimeout(()=>fitFull($('shop')),0);const nx=spec(zone+1)
  const own=[...bag.map(b=>[b.id,'가방']),...Object.keys(nextFx).map(k=>[k,'다음 스테이지']),...Object.keys(perm).map(k=>[k,'계속']),...(spanLeft?[['bonus',spanLeft+'스테이지 남음']]:[])];
  $('shopBag').innerHTML=`<div class="ownHead">${IC.bag}<span>가방 ${bag.length}/3 · 가진 것</span></div>`+(own.length?own.map(([k,w])=>`<span class="own">${ITEM_IC[k]}<span>${ITEMS[k].nm}</span><i>${w}</i></span>`).join(''):'<span class="lb">아직 없음</span>')+(TUT.on?`<button class="tutQuit">튜토리얼 끝내기</button>`:'');document.querySelectorAll('#shopBag .tutQuit').forEach(b=>b.onclick=tutQuit);}
 function buy(i){const id=shop.items[i],it=ITEMS[id];if(shop.bought!==null||money<it.p)return;{const f=tutShopFix();if(f&&id!==f.must)return;}TUT.finish('sh_buy');TUT.finish('sh2_buy');PLOG.shop(`${it.nm}(${it.p}원)`);money-=it.p;shop.bought=i;
- if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;renderShop();}
-$('buyTile').onclick=()=>{if(money<CFG.shopCost)return;TUT.finish('sh_tile');money-=CFG.shopCost;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${CFG.shopCost}원)`);renderShop();};
+ if(it.k==='hold')bag.push({id,uses:id==='probe'?3:0});else if(it.k==='next')nextFx[id]=true;else if(it.k==='perm')perm[id]=true;else if(it.k==='span')spanLeft=6;const card=document.querySelectorAll('#shopItems .item')[i];const from=card&&card.querySelector('.iIc').getBoundingClientRect();renderShop();shopBought(i,id,from);}
+function shopFlash(t){let e=$('shopToast');if(!e){e=document.createElement('div');e.id='shopToast';$('shop').appendChild(e);}e.innerHTML=t;e.classList.remove('show');void e.offsetWidth;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1300);}
+function shopBought(i,id,from){const card=document.querySelectorAll('#shopItems .item')[i];if(card){card.classList.add('justBought');}shopFlash(`${ITEM_IC[id]}<b>${ITEMS[id].nm}</b><span>구입!</span>`);
+ const own=[...document.querySelectorAll('#shopBag .own')].pop();if(from&&own){const to=own.getBoundingClientRect(),f=document.createElement('div');f.className='flyItem';f.innerHTML=ITEM_IC[id];f.style.cssText=`left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px`;document.body.appendChild(f);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${to.left-from.left}px,${to.top-from.top}px) scale(0.5)`;f.style.opacity='0.3';}));setTimeout(()=>{f.remove();own.classList.add('justBought');},650);}}
+$('buyTile').onclick=()=>{if(money<CFG.shopCost)return;TUT.finish('sh_tile');money-=CFG.shopCost;tiles+=CFG.shopGet;PLOG.shop(`타일+${CFG.shopGet}(${CFG.shopCost}원)`);renderShop();const tb=$('shopTiles');if(tb){tb.classList.remove('bump');void tb.offsetWidth;tb.classList.add('bump');const r=tb.getBoundingClientRect(),p=document.createElement('div');p.className='plusUp';p.textContent='+'+CFG.shopGet;p.style.left=(r.right-10)+'px';p.style.top=(r.top)+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),900);}const sl=document.querySelector('#shop .tileSlot');if(sl){sl.classList.remove('justBought');void sl.offsetWidth;sl.classList.add('justBought');}};
 $('reroll').onclick=()=>{if(tutShopFix())return;const cost=shop.rr+1;if(money<cost||shop.bought!==null)return;money-=cost;shop.rr++;PLOG.shop(`진열 바꾸기(${cost}원)`);shop.items=offerList();renderShop();};
 $('shopGo').onclick=()=>{if(tutShopFix()&&shop.bought===null)return;$('shop').classList.remove('show');if(spanLeft)spanLeft--;fx={...nextFx};if(fx.peek)fx.peek=3;nextFx={};zone++;startZone(nextGems(zone));};
 
@@ -888,6 +908,7 @@ const nb4=(v,k)=>`<b class="cNum">${v}</b>`;
 function tutScriptStage1(){tutScript=true;const C=[3,3],B=[5,3],D=[3,1],F=[TUT_GEM.x,TUT_GEM.y];
  const st=(id,o)=>Object.assign({id:'s1_'+id},o);
  const steps=[
+  st('gems',{target:'gemRow',text:'이번 스테이지에서 <b>찾을 보석</b>은 여기 보여요.<br>색과 개수를 알려 주고, 찾으면 색이 채워져요.<br>지금은 <b>빨간 보석 1개</b>예요'}),
   st('intro',{target:'boardWrap',text:'이 판 어딘가에 <b>빨간 보석이 1개</b> 숨어 있어요.<br>타일을 놓아 단서를 모아서 찾아봐요'}),
   st('p1',{action:true,target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:'빨간 타일을 <b>판 가운데 칸</b>으로 끌어다 놓아 보세요'}),
   st('n0',{target:{cell:C},text:'타일에 숫자가 4개 생겼어요.<br>뾰족한 꼭짓점 쪽에 <b>빨간 보석이 몇 개</b> 있는지 알려 줘요'}),
@@ -908,7 +929,7 @@ const TUT_GEMS={1:[{x:5,y:1,c:1}],2:[{x:1,y:1,c:1},{x:5,y:5,c:2}],3:[{x:5,y:2,c:
 const nextGems=z=>TUT.on&&TUT_GEMS[z]?TUT_GEMS[z]:undefined;
 let tutHelp=false;
 function tutHelpSvg(){if(!tutHelp||!TUT.on||zone>3||phase!=='play')return '';let s='';
- for(const c of [...new Set(live().map(g=>g.c))])for(const [x,y] of tutCands(c))s+=`<rect x="${x+0.08}" y="${y+0.08}" width="0.84" height="0.84" rx="0.08" fill="${FILL[c]}" fill-opacity="0.32" stroke="${FILL[c]}" stroke-width="0.05" stroke-dasharray="0.12 0.08"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.36" fill="${FILL[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
+ for(const c of [...new Set(live().map(g=>g.c))])if(Object.values(cell).includes(c))for(const [x,y] of tutCands(c))s+=`<rect x="${x+0.08}" y="${y+0.08}" width="0.84" height="0.84" rx="0.08" fill="${FILL[c]}" fill-opacity="0.32" stroke="${FILL[c]}" stroke-width="0.05" stroke-dasharray="0.12 0.08"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.36" fill="${FILL[c]}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
  return s;}
 const tT=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
 const TUT_SHOP={1:{items:['probe','row','value'],must:'probe'},2:{items:['row','freeov','bonus'],must:'row'}};
@@ -917,7 +938,7 @@ const NOWHERE=[-9,-9];
 function tutFloor(){if(TUT.on&&zone<=3&&tiles<15){tiles=15;draw();}}
 function tutScriptStage2(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s2_'+id},o);const R=[3,3],Y=[1,1],R2=[1,3],R3=[3,1],GEM=[1,1];
  const steps=[
-  st('intro',{target:'gemRow',text:`연습 2. 이번엔 ${tT(1)}<b>빨간 보석</b>과 ${tT(2)}<b>노란 보석</b>이<br>하나씩 숨어 있어요`}),
+  st('intro',{target:'gemRow',text:`연습 2. 위 보석 줄을 보세요.<br>이번엔 ${tT(1)}<b>빨간 보석</b>과 ${tT(2)}<b>노란 보석</b>을<br>하나씩 찾아야 해요`}),
   st('pr',{action:true,hand:[1,2,1,0],target:{cell:R},force:R,marks:[{t:'target',c:R}],finger:['h0',{cell:R}],text:`${tT(1)} 빨간 타일을 깜빡이는 칸에 놓아 보세요`}),
   st('cr',{target:'boardWrap',marks:[{t:'candc',c:1}],text:`빨간 타일의 숫자는 <b>빨간 보석만</b> 세요.<br>노란 보석은 세지 않아요.<br>빨간 보석은 <b>빨간 ? 칸</b> 중 하나예요`}),
   st('py',{action:true,hand:[1,2,1,0],target:{cell:Y},force:Y,marks:[{t:'candc',c:1},{t:'target',c:Y}],finger:['h1',{cell:Y}],text:`이번엔 ${tT(2)} 노란 타일을 깜빡이는 칸에 놓아 보세요`}),
@@ -930,19 +951,19 @@ function tutScriptStage2(){tutScript=true;tutHelp=false;tutFloor();const st=(id,
   st('pf',{action:true,hand:[1,1,2,0],target:{cell:GEM},force:GEM,marks:[{t:'target',c:GEM}],finger:['h0',{cell:GEM}],text:`이제 빨강을 놓아 <b>빨간 보석</b>을 찾아요`}),
   st('probe',{action:true,probe:true,target:'bag',force:NOWHERE,text:`상점에서 산 <b>탐지기</b>를 써 볼게요.<br>아래 탐지기를 누르고 <b>쓰기</b>, 그다음 판의 칸 하나를 누르세요`}),
   st('probeRes',{target:'boardWrap',text:'보석이 있는 칸이면 <b>흰 보석 테두리</b>,<br>없는 칸이면 <b>✕</b>가 남아요.<br>탐지기는 3번 쓸 수 있어요'}),
-  st('free',{target:'boardWrap',help:true,text:'이제 노란 ? 칸을 보며<br><b>노란 보석</b>을 직접 찾아 보세요'})];
+  st('free',{target:'boardWrap',help:true,text:'이제 <b>노란 보석</b>을 직접 찾아 보세요.<br>노란 타일을 놓으면 보석이 있을 수 있는 칸을<br><b>?로 보여 줘요(연습에서만)</b>. 진짜 게임에서는<br>숫자를 보고 스스로 찾아야 해요'})];
  for(const s of steps)TUT.want(s,0);}
 function tutScriptStage3(){tutScript=true;tutHelp=false;tutFloor();const st=(id,o)=>Object.assign({id:'s3_'+id},o);const C=[3,3];
  const steps=[
   st('row',{action:true,rowStep:true,target:'boardWrap',force:NOWHERE,text:'상점에서 산 <b>줄 탐지</b>가 켜졌어요!<br>"다음 스테이지에서만" 아이템은 이렇게 바로 효과가 나요.<br>가로줄 하나를 골라 아무 칸이나 눌러 보세요'}),
   st('rowRes',{target:'boardWrap',text:'그 줄에 있는 <b>보석 수</b>(색과 상관없이)가<br>줄 왼쪽 끝에 표시돼요'}),
-  st('intro',{target:'gemRow',text:`연습 3. ${tT(3)} <b>주황 보석</b>은<br><b>주황 타일</b>로만 찾을 수 있어요`}),
+  st('intro',{target:'gemRow',text:`연습 3. 위 보석 줄을 보세요. 이번엔 ${tT(3)} <b>주황 보석 1개</b>예요.<br>주황 보석은 <b>주황 타일</b>로만 찾을 수 있어요`}),
   st('mix',{target:'mixBtn',text:`타일을 같은 칸에 겹쳐 놓으면 색이 섞여요.<br>${tT(1)}+${tT(2)}=${tT(3)} ${tT(2)}+${tT(4)}=${tT(6)} ${tT(1)}+${tT(4)}=${tT(5)}<br>이 버튼을 누르면 언제든 다시 볼 수 있어요`}),
   st('p1',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:`먼저 ${tT(1)} 빨간 타일을 가운데에 놓아요`}),
   st('p2',{action:true,hand:[1,2,1,0],target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h1',{cell:C}],text:`그 위에 ${tT(2)} 노란 타일을 <b>겹쳐</b> 놓아요`}),
   st('co',{target:'boardWrap',marks:[{t:'candc',c:3}],text:`${tT(3)} 주황 타일이 됐어요!<br>이제 숫자는 <b>주황 보석</b>을 세요.<br>주황 보석은 주황 ? 칸 중 하나예요`}),
   st('rule',{target:'boardWrap',text:'<b>같은 색</b>이 겹치거나 <b>세 색이 다 모이면</b><br>칸이 비워져요'}),
-  st('free',{target:'boardWrap',help:true,text:'주황 ? 칸에 빨강과 노랑을 겹쳐<br><b>주황 보석</b>을 찾아 보세요'})];
+  st('free',{target:'boardWrap',help:true,text:'주황 ? 칸에 빨강과 노랑을 겹쳐<br><b>주황 보석</b>을 찾아 보세요.<br>? 칸은 연습에서만 보여요'})];
  for(const s of steps)TUT.want(s,0);}
 function tutShopDetailed(){money=Math.max(money,0)+8;renderShop();const it1=document.querySelector('#shopItems .item');
  const S=(id,o)=>TUT.want(Object.assign({id},o),0);
