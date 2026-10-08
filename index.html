@@ -369,7 +369,8 @@ let gemSvg=(c,sz,filled)=>`<svg viewBox="0 0 1 1" width="${sz}" height="${sz}">$
 const big=(h)=>`<div class="tBig">${h}</div>`;
 
 // ---------- 레트로 옷 (?skin=a 밤 미로, ?skin=b 흙 마당) · 시험용 ----------
-const SKIN=((location.search.match(/skin=([ab])/i)||[])[1]||(DEV&&(()=>{try{return localStorage.getItem('ms2_skin')}catch(e){return ''}})())||'').toLowerCase();
+const SKIN_Q=(location.search.match(/[?&]skin=([ab]?)/i)||[])[1];if(DEV&&SKIN_Q!==undefined){try{if(SKIN_Q)localStorage.setItem('ms2_skin',SKIN_Q.toLowerCase());else localStorage.removeItem('ms2_skin');}catch(e){}}
+const SKIN=(SKIN_Q||(DEV&&(()=>{try{return localStorage.getItem('ms2_skin')}catch(e){return ''}})())||'').toLowerCase();
 const SK=SKIN?(function(theme){
  const PC=26;
  const LIGHT={1:'#FF8A7A',2:'#FFF08A',4:'#86B4FF',3:'#FFC071',6:'#86E39C',5:'#D193EC'},MIDL={1:'#F45E50',2:'#FFDC5C',4:'#5690F0',3:'#F9A24A',6:'#56C674',5:'#B26AD2'};
