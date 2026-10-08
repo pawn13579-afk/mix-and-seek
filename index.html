@@ -315,6 +315,7 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .sk .rSum>div{border-radius:0;border:3px solid var(--border-strong)}
 .sk .tBtns button span{font-size:19px}
 .sk #tStart:not(.primary) .ic,.sk #tTut.primary .ic{filter:invert(1)}
+.cNum{display:inline-block;min-width:22px;padding:0 4px;border-radius:4px;background:#E8392F;color:#fff;font-size:16px;margin:0 2px}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -631,7 +632,7 @@ function tileSvg(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],cx=x+0.5,cy=y+0.5,d=
 function draw(){
  const f=$('fld');const MG=SK?SK.margin:0.1;f.setAttribute('viewBox',`${-MG} ${-MG} ${G+MG*2} ${G+MG*2}`);
  const vc=peekView?peekView.c:drag&&drag.c?drag.c:(selCell&&cell[selCell]?cell[selCell]:hand[hs]);
- const hintSrc=peekView?[[peekView.k,peekView.c]]:Object.entries(cell).filter(([k,t])=>t===vc);
+ const hintSrc=tutMarks.length?[]:peekView?[[peekView.k,peekView.c]]:Object.entries(cell).filter(([k,t])=>t===vc);
  let s=SK?SK.board(G):`<rect x="0" y="0" width="${G}" height="${G}" rx="0.08" fill="#141414"/>`;
  if(!SK)for(let i=1;i<G;i++)s+=`<line x1="${i}" y1="0" x2="${i}" y2="${G}" stroke="#3A3A3A" stroke-width="0.02"/><line x1="0" y1="${i}" x2="${G}" y2="${i}" stroke="#3A3A3A" stroke-width="0.02"/>`;
  if(areaMark)s+=`<rect x="${areaMark.x}" y="${areaMark.y}" width="3" height="3" fill="${FILL[areaMark.c]}" opacity="0.22" stroke="${FILL[areaMark.c]}" stroke-width="0.05" stroke-dasharray="0.15 0.1"/>`;
@@ -640,6 +641,7 @@ function draw(){
   if(c.u===0)dim+=`<rect x="0" y="0" width="${G}" height="${y}"/>`;if(c.d===0)dim+=`<rect x="0" y="${y+1}" width="${G}" height="${G-y-1}"/>`;}
  s+=`<g opacity="0.55" fill="#000000">${dim}</g>`;
  for(const [k,t] of hintSrc){const [x,y]=k.split(',').map(Number);s+=`<line x1="0" y1="${y+0.5}" x2="${G}" y2="${y+0.5}" stroke="${FILL[t]}" stroke-width="0.03" stroke-dasharray="0.1 0.08"/><line x1="${x+0.5}" y1="0" x2="${x+0.5}" y2="${G}" stroke="${FILL[t]}" stroke-width="0.03" stroke-dasharray="0.1 0.08"/>`;}
+ s+=tutMarkSvg();
  for(const [r,n] of Object.entries(rowMarks))s+=`<rect x="0" y="${+r}" width="${G}" height="1" fill="none" stroke="#85B7EB" stroke-width="0.05"/><circle cx="-0.0" cy="${+r+0.5}" r="0.28" fill="#2A6FDB"/><text x="0" y="${+r+0.5}" font-size="0.32" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${n}</text>`;
  for(const [k,t] of Object.entries(cell)){if(peekView&&peekView.k===k)continue;const [x,y]=k.split(',').map(Number);s+=tileSvg(x,y,t,false);}
  if(peekView){const [x,y]=peekView.k.split(',').map(Number);s+=tileSvg(x,y,peekView.c,false)+`<polygon points="${dia(x,y,-0.04)}" fill="none" stroke="#FFFFFF" stroke-width="0.07" stroke-dasharray="0.08 0.06"/>`;}
@@ -693,7 +695,7 @@ function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.mi
  HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
  draw();fit();setTimeout(tutZoneStart,0);toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''),2400);}
 function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;startZone(z.gems);}
-function newGame(){runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone();}
+function newGame(){runGems=0;runMoney=0;zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone(TUT.on?[TUT_GEM]:undefined);}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
@@ -702,13 +704,13 @@ function afterPlace(foundG){
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function lose(){phase='lost';saveRun();if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
  setTimeout(()=>{$('overBody').innerHTML=`<div class="oBig">${IC.zone}<b>${zone}</b></div><div class="oSub"><span class="st">${IC.tile}<b>0</b></span><span class="st">${IC.best}<b>${best}</b></span></div>`;$('over').classList.add('show');},1400);}
-function placeAt(x,y,i){TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
+function placeAt(x,y,i){if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force)TUT.finish(c.id);}TUT.finish('place');if(nudge){nudge=false;try{localStorage.setItem('ms2_nudge','1')}catch(e){}}const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
  if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
  else{if(!(t&&fx.freeov))tiles--;if(nt)cell[k]=nt;else delete cell[k];}
  hand[i]=draw1();hs=i;afterPlace(g&&g.f);tutPlaced(x,y,!!(g&&g.f));}
 function bad(x,y){badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450);}
-function eraseAt(x,y){const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
+function eraseAt(x,y){if(tutForce){bad(x,y);return;}const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
 function collect(){if(collecting||collected)return;collecting=true;TUT.finish('sell');toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
@@ -770,7 +772,7 @@ for(let i=0;i<4;i++){const el=$('h'+i);
  el.addEventListener('pointerup',()=>{const d=drag;endDrag((d,t)=>{armed=null;eraseAt(t.x,t.y);});if(d&&!d.mv){armed=armed==='er'?null:'er';draw();}});el.addEventListener('pointercancel',()=>{drag=null;target=null;$('ghost').style.display='none';draw();});el.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});}
 document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
 $('fld').addEventListener('click',e=>{if(phase!=='play')return;const c=cellAt(e.clientX,e.clientY);if(c)boardTap(c.x,c.y);});
-$('bRef').onclick=()=>{if(phase!=='play')return;armed=null;tiles-=CFG.refCost;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
+$('bRef').onclick=()=>{if(phase!=='play'||tutForce)return;armed=null;tiles-=CFG.refCost;hand=Array.from({length:4},draw1);hs=0;if(tiles<=0&&live().length)lose();draw();};
 $('bCollect').onclick=collect;$('retry').onclick=newGame;
 
 // ---------- 팝업, 가이드 ----------
@@ -828,6 +830,37 @@ function gShow(p){gPage=Math.max(1,Math.min(G_PAGES,p));document.querySelectorAl
  $('gNext').textContent=gPage<G_PAGES?'다음':'시작하기';$('guide').scrollTop=0;}
 function guideDone(){$('guide').classList.remove('show');try{localStorage.setItem('ms2_guide','1')}catch(e){}}
 $('gPrev').onclick=()=>gShow(gPage-1);$('gNext').onclick=()=>{if(gPage<G_PAGES)gShow(gPage+1);else guideDone();};$('gSkip').onclick=guideDone;
+// ---------- 튜토리얼 1스테이지: 같이 푸는 연습 판 ----------
+let tutMarks=[],tutForce=null,tutScript=false;
+const TUT_GEM={x:5,y:1,c:1};
+// 판의 빨간 타일 숫자와 모두 맞는 칸(보석 1개일 때)
+function tutCands(c){const ts=Object.entries(cell).filter(([k,t])=>t===c).map(([k])=>k.split(',').map(Number));const out=[];
+ for(let y=0;y<G;y++)for(let x=0;x<G;x++){if(cell[K(x,y)])continue;let ok=true;for(const [tx,ty] of ts){const v=clue(tx,ty,c);if(v.u!==(y<ty?1:0)||v.d!==(y>ty?1:0)||v.l!==(x<tx?1:0)||v.r!==(x>tx?1:0)){ok=false;break;}}if(ok)out.push([x,y]);}return out;}
+function tutMarkSvg(){let s='';for(const m of tutMarks){
+ if(m.t==='yes')s+=`<rect x="${m.r[0]}" y="${m.r[1]}" width="${m.r[2]}" height="${m.r[3]}" fill="#F6C430" fill-opacity="0.28" stroke="#F6C430" stroke-width="0.06"/>`;
+ else if(m.t==='no')s+=`<rect x="${m.r[0]}" y="${m.r[1]}" width="${m.r[2]}" height="${m.r[3]}" fill="#000000" fill-opacity="0.6" stroke="#888780" stroke-width="0.04" stroke-dasharray="0.12 0.08"/>`;
+ else if(m.t==='cand')for(const [x,y] of m.cells)s+=`<rect x="${x+0.06}" y="${y+0.06}" width="0.88" height="0.88" rx="0.08" fill="#F6C430" fill-opacity="0.45" stroke="#FFFFFF" stroke-width="0.05"/><text x="${x+0.5}" y="${y+0.53}" font-size="0.42" fill="#1A1A1A" text-anchor="middle" dominant-baseline="central" style="font-weight:700">?</text>`;
+ else if(m.t==='target'){const [x,y]=m.c;s+=`<polygon class="nudgeCell" points="${dia(x,y,0.02)}" fill="#F6C430" fill-opacity="0.3" stroke="#F6C430" stroke-width="0.08"/>`;}}
+ return s;}
+const nb4=(v,k)=>`<b class="cNum">${v}</b>`;
+function tutScriptStage1(){tutScript=true;const C=[3,3],B=[5,3],D=[3,1],F=[TUT_GEM.x,TUT_GEM.y];
+ const st=(id,o)=>Object.assign({id:'s1_'+id},o);
+ const steps=[
+  st('intro',{target:'boardWrap',text:'이 판 어딘가에 <b>빨간 보석이 1개</b> 숨어 있어요.<br>타일을 놓아 단서를 모아서 찾아봐요'}),
+  st('p1',{action:true,target:{cell:C},force:C,marks:[{t:'target',c:C}],finger:['h0',{cell:C}],text:'빨간 타일을 <b>판 가운데 칸</b>으로 끌어다 놓아 보세요'}),
+  st('n0',{target:{cell:C},text:'타일에 숫자가 4개 생겼어요.<br>뾰족한 꼭짓점 쪽에 <b>빨간 보석이 몇 개</b> 있는지 알려 줘요'}),
+  st('up',{target:'boardWrap',marks:[{t:'yes',r:[0,0,7,3]}],text:`위쪽 숫자 ${nb4(1)}<br>이 타일보다 <b>위에 있는 줄 전부</b>(노란 곳) 어딘가에<br>보석이 1개 있다는 뜻이에요`}),
+  st('down',{target:'boardWrap',marks:[{t:'no',r:[0,4,7,3]}],text:`아래쪽 숫자 ${nb4(0)}<br>타일보다 <b>아래 줄들에는 없어요</b>`}),
+  st('left',{target:'boardWrap',marks:[{t:'no',r:[0,0,3,7]}],text:`왼쪽 숫자 ${nb4(0)}<br>타일보다 <b>왼쪽 칸들에도 없어요</b>`}),
+  st('right',{target:'boardWrap',marks:[{t:'yes',r:[4,0,3,7]}],text:`오른쪽 숫자 ${nb4(1)}<br>타일보다 <b>오른쪽 칸들</b> 어딘가에 1개 있어요`}),
+  st('c1',{target:'boardWrap',marks:[{t:'cand',cells:'auto'}],text:'위쪽이면서 오른쪽!<br>보석은 <b>노란 ? 칸 9곳</b> 중 하나에 있어요'}),
+  st('p2',{action:true,target:{cell:B},force:B,marks:[{t:'cand',cells:'auto'},{t:'target',c:B}],finger:['h0',{cell:B}],text:'후보를 좁혀 봐요. <b>깜빡이는 칸</b>에 놓아 보세요'}),
+  st('n2',{target:'boardWrap',marks:[{t:'yes',r:[5,0,1,7]},{t:'cand',cells:'auto'}],text:`왼쪽 ${nb4(0)} 오른쪽 ${nb4(0)}이면<br>보석은 <b>이 타일과 같은 세로줄</b>에 있어요.<br>같은 줄에 있는 보석은 위·아래 숫자로만 세요`}),
+  st('p3',{action:true,target:{cell:D},force:D,marks:[{t:'cand',cells:'auto'},{t:'target',c:D}],finger:['h0',{cell:D}],text:'한 번 더! <b>깜빡이는 칸</b>에 놓아 보세요'}),
+  st('n3',{target:'boardWrap',marks:[{t:'yes',r:[0,1,7,1]},{t:'cand',cells:'auto'}],text:`이번엔 위 ${nb4(0)} 아래 ${nb4(0)}<br>보석은 <b>이 타일과 같은 가로줄</b>에 있어요.<br>노란 ? 칸이 <b>딱 1곳</b> 남았어요!`}),
+  st('p4',{action:true,target:{cell:F},force:F,marks:[{t:'cand',cells:'auto'}],finger:['h0',{cell:F}],text:'남은 ? 칸에 빨강을 놓아 <b>보석을 찾아요</b>'})];
+ for(const s of steps)TUT.want(s,0);}
+function tutApplyStep(st){tutMarks=(st&&st.marks||[]).map(m=>m.cells==='auto'?{t:'cand',cells:tutCands(1)}:m);tutForce=st&&st.force?{x:st.force[0],y:st.force[1]}:null;draw();}
 // ---------- 따라 하는 튜토리얼 (각 장면은 이 기기에서 한 번만) ----------
 const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')||'{}');}catch(e){}
  const save=()=>{try{localStorage.setItem('ms2_tut',JSON.stringify(done));}catch(e){}};
@@ -844,28 +877,29 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
   if(!r)top=vh/2-bh/2;else if(r.top-pad-bh-14>8)top=r.top-pad-bh-14;else top=Math.min(vh-bh-8,r.top+r.height+pad+14);
   bub.style.top=top+'px';
   if(cur.finger){const a=rectOf(cur.finger[0]),b=rectOf(cur.finger[1]);if(a&&b){fing.style.display='block';fing.style.setProperty('--x0',(a.left+a.width/2-14)+'px');fing.style.setProperty('--y0',(a.top+a.height/2-14)+'px');fing.style.setProperty('--x1',(b.left+b.width/2-14)+'px');fing.style.setProperty('--y1',(b.top+b.height/2-14)+'px');}else fing.style.display='none';}else fing.style.display='none';}
- function show(st){cur=st;$('coachTxt').innerHTML=st.text;$('coachOk').style.display=st.action?'none':'';box.classList.add('show');place();requestAnimationFrame(place);}
- function next(){box.classList.remove('show');cur=null;const n=queue.shift();if(n)setTimeout(()=>{if(!done[n.id]||n.force)show(n);else next();},250);}
+ function show(st){cur=st;tutApplyStep(st);$('coachTxt').innerHTML=st.text;$('coachOk').style.display=st.action?'none':'';box.classList.add('show');place();requestAnimationFrame(place);}
+ function next(){box.classList.remove('show');cur=null;const n=queue.shift();if(!n)tutApplyStep(null);if(n)setTimeout(()=>{if(!done[n.id]||n.force)show(n);else next();},250);}
  function finish(id){if(cur&&cur.id===id){done[id]=1;save();next();}else{queue=queue.filter(q=>q.id!==id);}}
  $('coachOk').onclick=e=>{e.stopPropagation();if(cur){done[cur.id]=1;save();}next();};
- $('coachOff').onclick=e=>{e.stopPropagation();done.all=1;save();queue=[];box.classList.remove('show');cur=null;};
+ $('coachOff').onclick=e=>{e.stopPropagation();done.all=1;save();queue=[];box.classList.remove('show');cur=null;tutApplyStep(null);};
  box.addEventListener('click',e=>{if(cur&&!cur.action&&e.target===box){done[cur.id]=1;save();next();}});
  window.addEventListener('resize',place);
  return {
   on:false,
   want(st,delay){if(!TUT.on)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}setTimeout(()=>{if(done.all||done[st.id])return;if(cur){queue.push(st);return;}show(st);},delay||0);},
-  finish,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
-  reset(){done={};save();queue=[];cur=null;box.classList.remove('show');},place};
+  finish,step:()=>cur,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
+  reset(){done={};save();queue=[];cur=null;box.classList.remove('show');tutScript=false;tutMarks=[];tutForce=null;},place};
 })();
 const tileTxt=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
 function tutZoneStart(){
- if(zone===1&&!TUT.seen('place'))TUT.want({id:'place',action:true,target:'handRow',finger:['h0',{cell:[Math.floor(G/2),Math.floor(G/2)]}],text:'손의 타일을 판으로 끌어다 놓아 보세요'},900);
+ if(zone===1&&TUT.on&&!TUT.seen('s1_intro'))tutScriptStage1();
+ else if(zone===1&&!TUT.seen('place'))TUT.want({id:'place',action:true,target:'handRow',finger:['h0',{cell:[Math.floor(G/2),Math.floor(G/2)]}],text:'손의 타일을 판으로 끌어다 놓아 보세요'},900);
  else if(zone>=2&&!TUT.seen('tools'))TUT.want({id:'tools',target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`},2600);
  if(gems.some(g=>isMix(g.c))&&!TUT.seen('mix')){const c=gems.find(g=>isMix(g.c)).c,p=PRIM.filter(q=>c&q);TUT.want({id:'mix',target:'gemRow',text:`${tileTxt(c)} ${NAME[c]} 보석은 ${tileTxt(p[0])}${NAME[p[0]]}과 ${tileTxt(p[1])}${NAME[p[1]]}을<br>같은 칸에 겹쳐 놓아야 찾아요`},2600);}
  if(bag.length&&!TUT.seen('bag'))TUT.want({id:'bag',target:'bag',text:'산 아이템은 여기를 눌러 써요'},2600);}
 function tutPlaced(x,y,found){TUT.finish('place');
  if(found){TUT.want({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
- else if(cell[K(x,y)])TUT.want({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
+ else if(!tutScript&&cell[K(x,y)])TUT.want({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
 function tutClear(){TUT.want({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요'},1200);}
 function tutShop(){TUT.want({id:'shopTile',target:document.querySelector('#shop .tileSlot'),text:'돈으로 <b>타일</b>을 살 수 있어요. 몇 번이든 살 수 있어요'},300);TUT.want({id:'shopItem',target:'shopItems',text:'아이템은 한 번에 <b>하나만</b> 살 수 있어요.<br>카드의 설명을 보고 골라요'},350);TUT.want({id:'shopReroll',target:'reroll',text:'마음에 드는 게 없으면 <b>진열을 바꿔요</b>.<br>바꿀 때마다 1원씩 비싸져요'},400);TUT.want({id:'shopGo',target:'shopNext',text:'다음 스테이지에 나올 보석을 보고<br>준비가 되면 <b>다음 스테이지</b>를 눌러요'},450);}
 // ---------- 시작 화면과 기록 ----------
