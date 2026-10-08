@@ -582,12 +582,13 @@ const SK=SKIN?(function(theme){
  const MIDD={1:'#B8231C',2:'#D49A12',4:'#1F4FB0',3:'#C2600E',6:'#1F7E3C',5:'#6E2E8C'},DARK={1:'#7E1410',2:'#9A6A06',4:'#14337A',3:'#8A4206',6:'#13552A',5:'#4A1C60'};
  const PF={1:'#E8392F',2:'#F6C430',4:'#2F6FE0',3:'#F2841E',6:'#2FA552',5:'#9446B5'};
  const DIG={0:['111','101','101','101','111'],1:['010','110','010','010','111'],2:['111','001','111','100','111'],3:['111','001','111','001','111'],4:['101','101','111','001','001'],5:['111','100','111','001','111'],6:['111','100','111','101','111'],7:['111','001','010','010','010'],8:['111','101','111','101','111'],9:['111','101','111','001','111']};
+ const DIG5={0:['01110','10001','10011','10101','11001','10001','01110'],1:['00100','01100','00100','00100','00100','00100','01110'],2:['01110','10001','00001','00010','00100','01000','11111'],3:['11111','00010','00100','00010','00001','10001','01110'],4:['00010','00110','01010','10010','11111','00010','00010'],5:['11111','10000','11110','00001','00001','10001','01110'],6:['00110','01000','10000','11110','10001','10001','01110'],7:['11111','00001','00010','00100','01000','01000','01000'],8:['01110','10001','10001','01110','10001','10001','01110'],9:['01110','10001','10001','01111','00001','00010','01100']};
  const cv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.imageSmoothingEnabled=false;return [c,x];};
  const R=(x,a,b,w,h,col)=>{x.fillStyle=col;x.fillRect(a,b,w,h);};
  const map=(x,ox,oy,rows,pal)=>rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch!=='.'&&pal[ch])R(x,ox+i,oy+j,1,1,pal[ch]);}));
- function digit(x,ox,oy,d,col,out,s){s=s||1;const g=DIG[d];if(out)for(let j=0;j<5;j++)for(let i=0;i<3;i++)if(g[j][i]==='1')R(x,ox+i*s-1,oy+j*s-1,s+2,s+2,out);for(let j=0;j<5;j++)for(let i=0;i<3;i++)if(g[j][i]==='1')R(x,ox+i*s,oy+j*s,s,s,col);}
- function numAt(x,cx,cy,n,col,out,s){s=s||1;const t=String(n),w=t.length*4*s-s;[...t].forEach((d,k)=>digit(x,cx-Math.floor(w/2)+k*4*s,cy-Math.floor(5*s/2),d,col,out,s));}
- function numsOn(x,ox,oy,v,c){const ink=INK[c],out=ink==='#FFFFFF'?'#111111':(c===2?'#FFF6C8':'#FFD9A8');const h=Math.floor(PC/2),sc=n=>String(n).length>1?1:2;numAt(x,ox+h,oy+10,v[0],ink,out,sc(v[0]));numAt(x,ox+h,oy+PC-10,v[1],ink,out,sc(v[1]));numAt(x,ox+10,oy+h,v[2],ink,out,sc(v[2]));numAt(x,ox+PC-10,oy+h,v[3],ink,out,sc(v[3]));}
+ function digit(x,ox,oy,d,col,out,s,F){s=s||1;const g=(F||DIG)[d],H=g.length,W=g[0].length;if(out)for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(g[j][i]==='1')R(x,ox+i*s-1,oy+j*s-1,s+2,s+2,out);for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(g[j][i]==='1')R(x,ox+i*s,oy+j*s,s,s,col);}
+ function numAt(x,cx,cy,n,col,out,s,F){s=s||1;F=F||DIG;const t=String(n),W=F[0][0].length,H=F[0].length,w=t.length*(W+1)*s-s;[...t].forEach((d,k)=>digit(x,cx-Math.floor(w/2)+k*(W+1)*s,cy-Math.floor(H*s/2),d,col,out,s,F));}
+ function numsOn(x,ox,oy,v,c){const ink=INK[c],out=ink==='#FFFFFF'?'#111111':(c===2?'#FFF6C8':'#FFD9A8');const h=Math.floor(PC/2),F=n=>String(n).length>1?DIG:DIG5;numAt(x,ox+h,oy+8,v[0],ink,out,1,F(v[0]));numAt(x,ox+h,oy+PC-8,v[1],ink,out,1,F(v[1]));numAt(x,ox+8,oy+h,v[2],ink,out,1,F(v[2]));numAt(x,ox+PC-8,oy+h,v[3],ink,out,1,F(v[3]));}
  function body(x,ox,oy,f){const h=(PC-1)/2;for(let j=0;j<PC;j++)for(let i=0;i<PC;i++){const dx=i-h,dy=j-h,d=Math.abs(dx)+Math.abs(dy);if(d>h)continue;R(x,ox+i,oy+j,1,1,f(dx,dy,d,h));}}
  function shadow(x,ox,oy){body(x,ox+3,oy+3,()=> 'rgba(0,0,0,0.45)');}
  function tileDraw(x,ox,oy,c){body(x,ox,oy,(dx,dy,d,h)=>d>h-1?'#111111':d>h-5?(dx<=0&&dy<=0?LIGHT[c]:dx>0&&dy<0?MIDL[c]:dx<0&&dy>0?MIDD[c]:DARK[c]):PF[c]);
@@ -762,10 +763,10 @@ function result(t,h){if(t&h)return 0;const u=t|h;return u===7?0:u;}
 
 // ---------- 그리기 ----------
 function tileSvg(x,y,t,ring){if(!ring&&gems.length&&!gems.some(g=>g.c===t))return `<g opacity="0.5">${tileSvg0(x,y,t,ring)}</g>`;return tileSvg0(x,y,t,ring);}
-function tileSvg0(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],cx=x+0.5,cy=y+0.5,d=0.255,fs=0.27,out=ink==='#FFFFFF'?'#000000':'#FFFFFF';
+function tileSvg0(x,y,t,ring){const c=clue(x,y,t),ink=INK[t],cx=x+0.5,cy=y+0.5,d=0.28,fs=0.22;
  if(SK&&!ring)return SK.tile(x,y,t,[c.u,c.d,c.l,c.r]);
  let s=`<polygon points="${dia(x,y,0.02)}" fill="${FILL[t]}" stroke="${ring?'#FFFFFF':'none'}" stroke-width="0.07" stroke-linejoin="round"/>`;if(ring)return s;
- for(const [k,dx,dy] of [['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]])s+=`<text x="${cx+dx*d}" y="${cy+dy*d}" font-size="${fs}" fill="${ink}" stroke="${out}" stroke-opacity="0.65" stroke-width="0.05" paint-order="stroke" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${c[k]}</text>`;return s;}
+ for(const [k,dx,dy] of [['u',0,-1],['d',0,1],['l',-1,0],['r',1,0]])s+=`<text x="${cx+dx*d}" y="${cy+dy*d}" font-size="${fs}" fill="${ink}" text-anchor="middle" dominant-baseline="central" style="font-weight:700">${c[k]}</text>`;return s;}
 function draw(){
  const f=$('fld');const MG=SK?SK.margin:0.1;f.setAttribute('viewBox',`${-MG} ${-MG} ${G+MG*2} ${G+MG*2}`);
  const vc=peekView?peekView.c:drag&&drag.c?drag.c:(selCell&&cell[selCell]?cell[selCell]:hand[hs]);
@@ -844,7 +845,7 @@ function afterPlace(foundG){
 function lose(){phase='lost';TUT.clearNow();SFX.lose();saveRun();PLOG.end();const newBest=!tainted&&!TUT.on&&zone>best;if(newBest){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
  const bw=$('boardWrap');bw.classList.remove('shake');void bw.offsetWidth;bw.classList.add('shake');
  setTimeout(()=>{if(phase!=='lost')return;$('loseBar').innerHTML=`<div class="lbTitle">GAME OVER</div><div class="lbRow"><span class="st">${IC.zone}<b>${zone}</b></span><span class="st">${IC.gemW}<b>${runGems}</b></span><span class="st">${IC.coin}<b>${runMoney}</b></span><span class="st${newBest?' newBest':''}">${IC.best}<b>${best}</b>${newBest?'<em>새 기록!</em>':''}</span></div><div class="lbBtns"><button id="retry2" class="primary">${IC.retry}<span>다시 하기</span></button><button id="toTitle2">${IC.next}<span>처음 화면</span></button></div>`;$('root').classList.add('lost');$('retry2').onclick=()=>startRun(TUT.on);$('toTitle2').onclick=showTitle;if(newBest)SFX.clear();fit();},700);}
-function spendTile(n){const b=tiles;tiles-=n;if(tiles>0&&tiles<=3&&tiles<b){SFX.warn();if(!TUT.on)TUT.hint({id:'h_low',target:'stat',text:'남은 타일이 <b>3개 이하</b>예요. 0이 되면 끝!<br>스테이지를 끝내면 상점에서 타일을 살 수 있어요'},500);}}
+function spendTile(n){const b=tiles;tiles-=n;if(tiles>0&&tiles<=3&&tiles<b){SFX.warn();}}
 function placeAt(x,y,i){{const cs=TUT.step();if(cs&&cs.erase){bad(x,y);return;}}if(tutForce&&(x!==tutForce.x||y!==tutForce.y)){bad(x,y);return;}{const c=TUT.step();if(c&&c.action&&c.force&&c.color&&hand[i]!==c.color){bad(x,y);return;}if(c&&c.action&&c.force)TUT.finish(c.id);}if(nudge)nudge=false;const h=hand[i],k=K(x,y),t=cell[k]||0;selCell=null;peekPick=null;peekView=null;
  const nt=result(t,h),g=gems.find(q=>!q.f&&q.x===x&&q.y===y);flash=[];
  if(nt&&g&&g.c===nt){g.f=true;cell[k]=nt;const add=CFG.find+(spanLeft?1:0);tiles+=add;runGems++;flash=[g];toast(big(gemSvg(nt,44)+'<span class="plus">+'+add+'</span>'+IC.tile));}
@@ -1111,8 +1112,7 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
  window.addEventListener('resize',place);
  return {
   on:false,
-  hint(st,delay){if(TUT.on)return;TUT.want.call(null,st,delay,true);},
-  tell(st,delay){if(TUT.on)TUT.want(st,delay);else TUT.hint(st,delay);},
+  tell(st,delay){if(TUT.on)TUT.want(st,delay);},
   want(st,delay,asHint){if(!TUT.on&&!asHint)return;if(done.all||done[st.id])return;if((cur&&cur.id===st.id)||queue.some(q=>q.id===st.id))return;if(cur){queue.push(st);return;}const g=gen;setTimeout(()=>{if(g!==gen||done.all||done[st.id]||!canShow())return;if(cur){queue.push(st);return;}show(st);},delay||0);},
   clearNow(){gen++;queue=[];cur=null;box.classList.remove('show');tutMarks=[];tutForce=null;},
   finish,step:()=>cur,seen:id=>!!(done.all||done[id]),active:id=>cur&&cur.id===id,
@@ -1120,15 +1120,12 @@ const TUT=(()=>{let done={};try{done=JSON.parse(localStorage.getItem('ms2_tut')|
 })();
 const tileTxt=c=>`<span class="cTile">${tileIco(c,22)}</span>`;
 function tutZoneStart(){tutHelp=false;tutScript=false;
- if(TUT.on){if(zone===1&&!TUT.seen('s1_intro'))tutScriptStage1();else if(zone===2&&!TUT.seen('s2_intro'))tutScriptStage2();else if(zone===3&&!TUT.seen('s3_intro'))tutScriptStage3();return;}
- if(zone>=2&&poolList().length>1)TUT.hint({id:'h_tools',target:'handRow',text:`잘못 놓은 타일은 <b>지우개</b>로 지우고,<br>손의 타일이 마음에 안 들면 <b>바꾸기</b>를 눌러요.<br>둘 다 타일 1개가 들어요`},2600);
- if(gems.some(g=>isMix(g.c))){const c=gems.find(g=>isMix(g.c)).c,p=PRIM.filter(q=>c&q);TUT.hint({id:'h_mix',target:'gemRow',text:`${tileTxt(c)} ${NAME[c]} 보석은 ${tileTxt(p[0])}${NAME[p[0]]}과 ${tileTxt(p[1])}${NAME[p[1]]}을<br>같은 칸에 <b>겹쳐</b> 놓아야 찾아요`},2600);}
- if(bag.length)TUT.hint({id:'h_bag',target:'bag',text:'산 아이템이 여기 있어요.<br>처음엔 설명이 뜨고 <b>쓰기</b>로 써요. 그다음부터는<br>누르면 바로 써요. 길게 누르면 설명을 다시 봐요'},2600);}
+ if(!TUT.on)return;if(zone===1&&!TUT.seen('s1_intro'))tutScriptStage1();else if(zone===2&&!TUT.seen('s2_intro'))tutScriptStage2();else if(zone===3&&!TUT.seen('s3_intro'))tutScriptStage3();}
 function tutPlaced(x,y,found){
  if(found){TUT.tell({id:'found',target:'stat',text:'찾았다! 보석을 찾으면 <b>타일이 1개 늘어나요</b>.<br>남은 타일이 <b>0이 되면 끝</b>이에요'},300);}
  else if(!tutScript&&cell[K(x,y)])TUT.tell({id:'nums',target:{cell:[x,y]},text:'타일의 숫자는 <b>그쪽 방향에 있는<br>같은 색 보석 수</b>예요. 0인 쪽엔 없어요'},400);}
 function tutClear(){TUT.tell({id:'sell',action:true,target:'bCollect',text:'스테이지 클리어! 보석을 팔아 돈으로 바꿔요',skipIf:()=>collecting||collected},1200);}
-function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}if(TUT.on)return;TUT.hint({id:'h_shop',target:'#shop .tileSlot',text:`타일이 모자라면 여기서 사요. 값은 ${CFG.shopStep}스테이지마다 올라요.<br>아이템은 한 번에 <b>하나만</b>, 카드 글을 보고 골라요`},300);}
+function tutShop(){if(TUT.on&&zone===1){tutShopDetailed();return;}if(TUT.on&&zone===2){tutShop2();return;}}
 // ---------- 플레이 기록 (기기에 최근 5판) ----------
 const PLOG=(()=>{const CLn={1:'빨',2:'노',4:'파',3:'주',6:'초',5:'보'};let runs=[];try{runs=JSON.parse(localStorage.getItem('ms2_logs')||'[]');}catch(e){}
  let run=null;const save=()=>{try{localStorage.setItem('ms2_logs',JSON.stringify(runs.slice(-5)));}catch(e){}};
