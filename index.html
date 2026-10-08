@@ -162,7 +162,7 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .skB #top,.skB #gemRow,.skB #bag,.skB #handRow{background:rgba(0,0,0,0.55);padding:4px 6px}
 .sk #gemRow .gIco{width:22px;height:20px}.sk #gemRow .gCnt b{font-size:14px}.sk #gemRow .gCnt{font-size:12px}
 .sk .hand .pxh{position:absolute;inset:0;width:107.7%;height:107.7%}
-.sk .hand.on .pxh{filter:drop-shadow(0 0 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)}
+.sk .hand .pxr{position:absolute;left:-7.7%;top:-7.7%;width:115.4%;height:115.4%;display:none;image-rendering:pixelated}.sk .hand.on .pxr{display:block}
 .sk .hand.armed .hdia,.sk .hand.armed .pxh{filter:drop-shadow(0 6px 0 rgba(0,0,0,0.5))}
 .sk #ghost{clip-path:none;opacity:0.95}
 .sk #toast{background:#000;border:3px solid #F6C430;border-radius:0}
@@ -223,6 +223,9 @@ html.sk body{font-family:"Press Start 2P","Galmuri11",system-ui,"Malgun Gothic",
 .dv details{margin:6px 0 8px}.dv summary{font-size:14px;padding:6px 0;cursor:pointer}
 #dvToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(20,20,20,0.92);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}#dvToast.show{opacity:1}
 .sk #devPanel{font-family:system-ui,"Malgun Gothic",sans-serif}
+
+.tDown{display:flex;justify-content:center;margin-top:4px}.tDown .ic{width:30px;height:30px;transform:rotate(90deg);animation:bob .8s ease-in-out infinite}
+@keyframes bob{50%{transform:rotate(90deg) translateX(6px)}}
 </style></head><body>
 <div id="root">
 <div id="top">
@@ -400,6 +403,7 @@ const SK=SKIN?(function(theme){
    for(let j=0;j<BS;j++)for(let i=0;i<BS;i++){const col=theme==='a'?(((i>>1)+(j>>1))%2?'#2A1640':'#341C4E'):(((i*7+j*13)%11<2)?'#B07D2E':((i+j)%2?'#C9963F':'#C08D38'));R(x,M+i,M+j,1,1,col);}
    const dk=theme==='a'?'rgba(0,0,0,0.55)':'rgba(70,40,0,0.45)',lt=theme==='a'?'rgba(255,255,255,0.10)':'rgba(255,240,200,0.35)';
    for(let y=0;y<G;y++)for(let i=0;i<G;i++){const a=M+i*PC,b=M+y*PC;R(x,a,b,PC,1,dk);R(x,a,b,1,PC,dk);R(x,a,b+PC-1,PC,1,lt);R(x,a+PC-1,b,1,PC,lt);}},G*PC+6,G*PC+6);}
+ const ringURL=()=>url('ring',x=>{const h=(PC-1)/2;for(let j=0;j<PC+4;j++)for(let i=0;i<PC+4;i++){const d=Math.abs(i-2-h)+Math.abs(j-2-h);if(d>h&&d<=h+2)R(x,i,j,1,1,'#FFFFFF');}},PC+4,PC+4);
  const icon=(k,rows,pal,w,h)=>`<img class="ic px" src="${url('i'+k,x=>map(x,0,0,rows,pal),w,h)}" alt="">`;
  const ICF=['oRRRRo..','oRRRRRo.','oRRRRo..','o.......','o.......','o.......','o.......','oo......'];
  const ICC=['..oooo..','.oYYYYo.','oYWYYYDo','oYWYDYDo','oYYYDYDo','oYYYYYDo','.oDDDDo.','..oooo..'];
@@ -418,7 +422,8 @@ const SK=SKIN?(function(theme){
   board:G=>`<defs><pattern id="dith" width="${2/PC}" height="${2/PC}" patternUnits="userSpaceOnUse"><rect width="${1/PC}" height="${1/PC}" fill="#000"/><rect x="${1/PC}" y="${1/PC}" width="${1/PC}" height="${1/PC}" fill="#000"/></pattern></defs><image href="${boardURL(G)}" x="${-3/PC}" y="${-3/PC}" width="${G+6/PC}" height="${G+6/PC}" ${PS}/>`,
   tile:(x,y,t,v,op)=>`<image href="${tileURL(t,v)}" x="${x}" y="${y}" width="${(PC+2)/PC}" height="${(PC+2)/PC}" ${PS}${op!=null?` opacity="${op}"`:''}/>`,
   gem:(cx,cy,c,mode,sc)=>{const w=9/PC*(sc||1),h=8/PC*(sc||1);return `<image href="${gemURL(c,mode)}" x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" ${PS}/>`;},
-  handImg:c=>`<img class="pxh" src="${tileURL(c,null)}" alt="">`,
+  handImg:c=>`<img class="pxh" src="${tileURL(c,null)}" alt=""><img class="pxr" src="${ringURL()}" alt="">`,
+  ring:(x,y)=>`<image href="${ringURL()}" x="${x-2/PC}" y="${y-2/PC}" width="${(PC+4)/PC}" height="${(PC+4)/PC}" ${PS}/>`,
   eraserImg:()=>`<img class="pxh" src="${eraserURL()}" alt="">`,
   gemImg:(c,filled)=>`<img class="gIco px" src="${gemURL(c,filled?'full':'empty')}" alt="">`,
   tileURL,eraserURL,h:{url,R,map,digit,numAt,shadow,tileDraw,tileURL,gemURL,PF,LIGHT,DARK,GEM}};
@@ -549,7 +554,7 @@ function draw(){
  for(const k of Object.keys(peeked)){const [x,y]=k.split(',').map(Number);s+=`<g><circle cx="${x+0.84}" cy="${y+0.16}" r="0.13" fill="#FFFFFF" stroke="#000" stroke-width="0.025"/><circle cx="${x+0.84}" cy="${y+0.16}" r="0.055" fill="#000"/></g>`;}
  for(const v of vanish)s+=tileSvg(v.x,v.y,v.t,true);
  for(const [k,v] of Object.entries(marks)){if(cell[k])continue;const [x,y]=k.split(',').map(Number);s+=v?gem(x+0.5,y+0.52,0.5,'none','#FFFFFF',0.05):`<path d="M${x+0.3},${y+0.3}L${x+0.7},${y+0.7}M${x+0.7},${y+0.3}L${x+0.3},${y+0.7}" stroke="#888780" stroke-width="0.06"/>`;}
- if(selCell&&cell[selCell]&&!drag){const [x,y]=selCell.split(',').map(Number);s+=`<polygon points="${dia(x,y,-0.04)}" fill="none" stroke="#FFFFFF" stroke-width="0.07"/>`;}
+ if(selCell&&cell[selCell]&&!drag){const [x,y]=selCell.split(',').map(Number);s+=SK?SK.ring(x,y):`<polygon points="${dia(x,y,-0.04)}" fill="none" stroke="#FFFFFF" stroke-width="0.07"/>`;}
  for(const g of done()){if(phase==='clear'){if(!g.col)s+=SK?SK.gem(g.x+0.5,g.y+0.5,g.c,'full',2):gem(g.x+0.5,g.y+0.52,0.74,FILL[g.c],'#FFFFFF',0.045);}else s+=SK?SK.gem(g.x+0.5,g.y+0.5,g.c,'white',1):gem(g.x+0.5,g.y+0.5,0.36,'#FFFFFF','rgba(0,0,0,0.6)',0.03);}
  for(const g of flash)s+=gem(g.x+0.5,g.y+0.5,0.86,'none','#FFFFFF',0.06);
  if(reveal||phase==='lost')for(const g of live())s+=SK?SK.gem(g.x+0.5,g.y+0.5,g.c,'full',2):gem(g.x+0.5,g.y+0.52,0.66,FILL[g.c],'#FFFFFF',0.04,0.8);
@@ -579,7 +584,8 @@ function draw(){
   pb.innerHTML=ITEM_IC.peek+(cs.length?cs.map(c=>`<button class="pkC${peekView&&peekView.c===c?' on':''}" data-pk="${c}" aria-label="${NAME[c]}">${SK?SK.tileImg(c,34):`<svg viewBox="0 0 1 1"><polygon points="${dia(0,0,0.04)}" fill="${FILL[c]}"/></svg>`}</button>`).join(''):IC.close);pb.style.display='flex';
   pb.querySelectorAll('[data-pk]').forEach(b=>b.onclick=e=>{e.stopPropagation();const c=+b.dataset.pk;peekView=peekView&&peekView.c===c?null:{k:peekPick,c};draw();});}else{pb.style.display='none';pb.innerHTML='';}}
  $('modeBar').style.display=mode?'flex':'none';$('modeBar').innerHTML=mode?ITEM_IC[mode]+IC.tap:'';}
-let toastT=0;function toast(t){const e=$('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),1500);}
+let toastT=0;function toast(t,ms){const e=$('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);if(ms!==0)toastT=setTimeout(()=>e.classList.remove('show'),ms||1800);}
+function toastOff(){clearTimeout(toastT);$('toast').classList.remove('show');}
 
 // ---------- 구역 ----------
 function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.min(sp.n+(fx.double?2:0),G*G-1);
@@ -590,13 +596,13 @@ function startZone(fixedGems){const sp=spec(zone);G=fx.small?6:7;const n=Math.mi
  zoneStart=JSON.stringify({zone,tiles,money,bag,fx,perm,spanLeft,nextFx,gems:gems.map(g=>({x:g.x,y:g.y,c:g.c}))});
  cell={};marks={};rowMarks={};areaMark=null;selCell=null;armed=null;peeked={};peekPick=null;peekView=null;flash=[];vanish=[];phase='play';collected=false;collecting=false;reveal=false;
  HN=Math.min(4,CFG.hand+(perm.hand4?1:0));hand=Array.from({length:4},draw1);hs=0;mode=fx.row?'row':null;
- draw();fit();toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''));}
+ draw();fit();toast(big(IC.zone+zone)+(sp.nc?big(IC.spark+gemSvg(sp.nc,40)):''),2400);}
 function restartZone(){if(!zoneStart)return;const z=JSON.parse(zoneStart);zone=z.zone;tiles=z.tiles;money=z.money;bag=z.bag;fx=z.fx;perm=z.perm;spanLeft=z.spanLeft;nextFx=z.nextFx;startZone(z.gems);}
 function newGame(){zone=1;tiles=CFG.start;money=0;bag=[];perm={};spanLeft=0;nextFx={};fx={};$('over').classList.remove('show');$('shop').classList.remove('show');startZone();}
 function afterPlace(foundG){
  if(live().length){const pool=new Set(poolList());hand=hand.map(c=>c&&!pool.has(c)?draw1():c);}
  if(live().length===0){phase='clear';for(const [k,t] of Object.entries(cell)){const [a,b]=k.split(',').map(Number);vanish.push({x:a,y:b,t});}cell={};marks={};rowMarks={};areaMark=null;mode=null;
-  setTimeout(()=>toast(big(IC.zone+zone+IC.check)),300);}
+  setTimeout(()=>{if(phase==='clear'&&!collecting)toast(big(IC.zone+zone+IC.check)+`<div class="tDown">${IC.next}</div>`,0);},300);}
  else if(tiles<=0)lose();
  draw();setTimeout(()=>{flash=[];vanish=[];draw();},1200);}
 function lose(){phase='lost';if(zone>best){best=zone;try{localStorage.setItem('ms2_best',String(best))}catch(e){}}draw();
@@ -610,8 +616,8 @@ function bad(x,y){badCell={x,y};draw();setTimeout(()=>{badCell=null;draw();},450
 function eraseAt(x,y){const k=K(x,y);if(!cell[k]){bad(x,y);return;}selCell=null;peekPick=null;peekView=null;delete cell[k];tiles--;afterPlace(false);}
 
 // ---------- 보석 팔기 ----------
-function collect(){if(collecting||collected)return;collecting=true;draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
- const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin));setTimeout(openShop,1200);},420);return;}
+function collect(){if(collecting||collected)return;collecting=true;toastOff();draw();const list=done().filter(g=>!g.col),root=$('root'),rr=root.getBoundingClientRect();let i=0,earned=0;
+ const step=()=>{if(i>=list.length){setTimeout(()=>{collecting=false;collected=true;draw();toast(big('<span class="plus">+'+earned+'</span>'+IC.coin),2000);setTimeout(()=>{toastOff();openShop();},2200);},420);return;}
   const g=list[i++],v=(price(g.c)+(perm.value&&isMix(g.c)?1:0))*(fx.double?2:1);earned+=v;
   const fr=$('fld').getBoundingClientRect(),u=fr.width/(G+0.2),sx=fr.left+(g.x+0.6)*u-rr.left,sy=fr.top+(g.y+0.6)*u-rr.top,sc=$('moneyNum').getBoundingClientRect(),tx=sc.left+sc.width/2-rr.left,ty=sc.top+sc.height/2-rr.top,w=u*0.74;
   g.col=true;draw();const f=document.createElement('div');f.className='fly';f.style.cssText=`width:${w}px;height:${w}px;left:${sx-w/2}px;top:${sy-w/2}px`;f.innerHTML=SK?gemSvg(g.c,w):`<svg viewBox="0 0 1 1" width="100%" height="100%">${gem(0.5,0.52,1,FILL[g.c],'#FFFFFF',0.06)}</svg>`;root.appendChild(f);
