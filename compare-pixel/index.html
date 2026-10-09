@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>픽셀 비교</title>
+<style>
+  :root { --bg: #101018; --fg: #f2f2f2; --dim: #9aa0b4; --on: #f6a800; --btn: #22263a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  body { display: flex; flex-direction: column; height: 100dvh; max-width: 680px; margin: 0 auto; }
+  header { padding: 8px 12px 4px; }
+  h1 { font-size: 15px; margin: 0 0 6px; font-weight: 600; color: var(--dim); }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .row button { flex: 1; min-height: 44px; border: 2px solid transparent; border-radius: 8px;
+    background: var(--btn); color: var(--fg); font-size: 15px; font-weight: 600; }
+  .row button.on { border-color: var(--on); color: var(--on); }
+  #note { font-size: 13px; line-height: 1.4; color: var(--dim); min-height: 2.8em; margin: 0; }
+  #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 4px 0 8px; }
+  #stage img { max-width: 100%; max-height: 100%; width: auto; height: 100%; object-fit: contain; display: none; }
+  #stage img.show { display: block; }
+  #stage img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+</head>
+<body>
+<header>
+  <h1>진짜 픽셀과 픽셀풍 비교 · 제작 2단계 · 그림을 누르면 두 방식이 번갈아 나온다</h1>
+  <div class="row" id="modes">
+    <button data-mode="style" class="on">픽셀풍</button>
+    <button data-mode="pixel">진짜 픽셀</button>
+  </div>
+  <div class="row" id="scenes">
+    <button data-scene="screen" class="on">화면 전체</button>
+    <button data-scene="chips">판 아래 아이템 칩</button>
+  </div>
+  <p id="note"></p>
+</header>
+<div id="stage">
+  <img data-k="screen-style" src="screen_style.webp" alt="화면 전체, 픽셀풍">
+  <img data-k="screen-pixel" class="px" src="screen_pixel.png" alt="화면 전체, 진짜 픽셀">
+  <img data-k="chips-style" src="chips_style.webp" alt="아이템 칩, 픽셀풍">
+  <img data-k="chips-pixel" class="px" src="chips_pixel.png" alt="아이템 칩, 진짜 픽셀">
+</div>
+<script>
+  const NOTES = {
+    'screen-style': 'ChatGPT가 그린 그림 그대로.',
+    'screen-pixel': '같은 그림을 크기가 같은 점 169×302개로 다시 찍은 것.',
+    'chips-style': '아이콘은 따로 그린 그림을 그대로 줄였다. 점이 판의 점보다 네 배쯤 작다.',
+    'chips-pixel': '아이콘을 판과 같은 크기의 점 16×16개로 기계가 줄였다. 실제로는 ChatGPT에 이 크기로 다시 그리게 하므로 이보다 깔끔하다. 위쪽 금화와 왕관이 ChatGPT가 이 점 크기로 그린 예다.'
+  };
+  let mode = 'style', scene = 'screen';
+  const imgs = document.querySelectorAll('#stage img');
+  function draw() {
+    const k = scene + '-' + mode;
+    imgs.forEach(i => i.classList.toggle('show', i.dataset.k === k));
+    document.querySelectorAll('#modes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    document.querySelectorAll('#scenes button').forEach(b => b.classList.toggle('on', b.dataset.scene === scene));
+    document.getElementById('note').textContent = NOTES[k];
+  }
+  document.getElementById('modes').onclick = e => { if (e.target.dataset.mode) { mode = e.target.dataset.mode; draw(); } };
+  document.getElementById('scenes').onclick = e => { if (e.target.dataset.scene) { scene = e.target.dataset.scene; draw(); } };
+  document.getElementById('stage').onclick = () => { mode = mode === 'style' ? 'pixel' : 'style'; draw(); };
+  draw();
+</script>
+</body>
+</html>
