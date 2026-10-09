@@ -45,7 +45,26 @@
     "item-value": "art/item-value.png",
     "item-bonus": "art/item-bonus.png",
     "item-small": "art/item-small.png",
-    "ui-sell": "art/ui-sell.png"
+    "ui-sell": "art/ui-sell.png",
+    "digit-0": "art/digit-0.png",
+    "digit-1": "art/digit-1.png",
+    "digit-2": "art/digit-2.png",
+    "digit-3": "art/digit-3.png",
+    "digit-4": "art/digit-4.png",
+    "digit-5": "art/digit-5.png",
+    "digit-6": "art/digit-6.png",
+    "digit-7": "art/digit-7.png",
+    "digit-8": "art/digit-8.png",
+    "digit-9": "art/digit-9.png",
+    "mark-miss": "art/mark-miss.png",
+    "mark-peek": "art/mark-peek.png",
+    "ui-finger": "art/ui-finger.png",
+    "ui-check": "art/ui-check.png",
+    "fx-sparkle": "art/fx-sparkle.png",
+    "when-hold": "art/when-hold.png",
+    "when-span": "art/when-span.png",
+    "when-perm": "art/when-perm.png",
+    "ui-lock": "art/ui-lock.png"
   },
   "nine": {
     "frame": [
@@ -55,5 +74,5 @@
       112
     ]
   },
-  "note": "1차(타일·흙 칸·판 테두리·보석), 2차(배경 ④a, 아이콘 ⑤b), 3차(아이템 ⑥b 여덟 개). 아이템 탐지기·줄 탐지·색 탐지·보석 두 배는 그림 도구 시험 2단계 그림. 버튼·정보 칸 아이콘은 틀 없이 그림만. nine은 [왼, 오, 위, 아래] 픽셀. btn-sell 키는 팔기 버튼 바탕(늘이는 틀)이라 아이콘(보석→금화)은 ui-sell로 둔다"
+  "note": "1차(타일·흙 칸·판 테두리·보석), 2차(배경 ④a, 아이콘 ⑤b), 3차(아이템 ⑥b), 4차(작은 아이콘 ⑦a), 5차(숫자 ⑧a). 아이템 탐지기·줄 탐지·색 탐지·보석 두 배는 그림 도구 시험 2단계 그림. 버튼 아이콘은 틀 없이 그림만, 버튼 바탕은 게임이 그린다. btn-sell 키는 팔기 버튼 바탕(늘이는 틀)이라 보석→금화 아이콘은 ui-sell. nine은 [왼, 오, 위, 아래] 픽셀"
 }
