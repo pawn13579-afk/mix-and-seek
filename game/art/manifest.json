@@ -72,7 +72,14 @@
     "badge-blue": "art/badge-blue.webp",
     "stamp": "art/stamp.webp",
     "mark-q": "art/mark-q.webp",
-    "fx-ring": "art/fx-ring.webp"
+    "fx-ring": "art/fx-ring.webp",
+    "btn-menu": "art/btn-menu.webp",
+    "btn-close": "art/btn-close.webp",
+    "ui-rotate": "art/ui-rotate.webp",
+    "card-back": "art/card-back.webp",
+    "fx-lens": "art/fx-lens.webp",
+    "fx-shine": "art/fx-shine.webp",
+    "btn-arrow": "art/btn-arrow.webp"
   },
   "nine": {
     "frame": [
