@@ -63,7 +63,16 @@
     "btn-blue": "art/btn-blue.webp",
     "btn-red": "art/btn-red.webp",
     "panel": "art/panel.webp",
-    "panel-red": "art/panel-red.webp"
+    "panel-red": "art/panel-red.webp",
+    "chip": "art/chip.webp",
+    "chip-on": "art/chip-on.webp",
+    "chip-fx": "art/chip-fx.webp",
+    "plate-green": "art/plate-green.webp",
+    "badge-red": "art/badge-red.webp",
+    "badge-blue": "art/badge-blue.webp",
+    "stamp": "art/stamp.webp",
+    "mark-q": "art/mark-q.webp",
+    "fx-ring": "art/fx-ring.webp"
   },
   "nine": {
     "frame": [
@@ -107,6 +116,30 @@
       63,
       64,
       63
+    ],
+    "chip": [
+      57,
+      56,
+      65,
+      59
+    ],
+    "chip-on": [
+      73,
+      70,
+      68,
+      70
+    ],
+    "chip-fx": [
+      59,
+      57,
+      60,
+      62
+    ],
+    "plate-green": [
+      60,
+      62,
+      62,
+      75
     ]
   },
   "border": {
@@ -145,6 +178,30 @@
       36,
       36,
       36
+    ],
+    "chip": [
+      31,
+      32,
+      33,
+      33
+    ],
+    "chip-on": [
+      35,
+      34,
+      35,
+      36
+    ],
+    "chip-fx": [
+      30,
+      27,
+      25,
+      24
+    ],
+    "plate-green": [
+      34,
+      34,
+      34,
+      35
     ]
   },
   "note": "1차(타일·흙 칸·판 테두리·보석), 2차(배경 ④a, 아이콘 ⑤b), 3차(아이템 ⑥b), 4차(작은 아이콘 ⑦a), 5차(숫자 ⑧a), 6차(보석 ⑩b), 7차(틀 ⑪a: box-info·tray·btn-blue·btn-red·panel·panel-red). 아이템 탐지기·줄 탐지·색 탐지·보석 두 배는 그림 도구 시험 2단계 그림. 버튼 아이콘은 틀 없이 그림만, 버튼 바탕은 게임이 그린다. btn-sell 키는 팔기 버튼 바탕(늘이는 틀)이라 보석→금화 아이콘은 ui-sell. nine은 [왼, 오, 위, 아래] 픽셀. 모든 그림은 WebP(품질 90, 알파 무손실. C8). border는 틀의 가운데 줄에서 잰 눈에 보이는 테두리 두께 [왼, 오, 위, 아래]로, nine(모서리 장식까지 넣은 모서리 조각 두께)보다 얇다. 틀을 다시 넣을 때는 game/tools/art의 place --trim --nine"
