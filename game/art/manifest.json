@@ -79,7 +79,8 @@
     "card-back": "art/card-back.webp",
     "fx-lens": "art/fx-lens.webp",
     "fx-shine": "art/fx-shine.webp",
-    "btn-arrow": "art/btn-arrow.webp"
+    "btn-arrow": "art/btn-arrow.webp",
+    "ui-clap": "art/ui-clap.webp"
   },
   "nine": {
     "frame": [
