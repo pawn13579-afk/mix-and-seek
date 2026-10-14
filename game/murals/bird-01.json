@@ -1,0 +1,32 @@
+{
+  "v": 1,
+  "id": "bird-01",
+  "name": "새",
+  "length": 20,
+  "w": 12,
+  "h": 12,
+  "rows": [
+    "............",
+    ".P........P.",
+    ".GY...B..YG.",
+    "GOYY.ROG.YOG",
+    "GOOYRRR.YOOG",
+    ".PBBRRRRBBP.",
+    ".OPBBRRBBPO.",
+    "..GPORYOPG..",
+    ".....YY.....",
+    "....BGGB....",
+    "...PYP.YP...",
+    "............"
+  ],
+  "source": "ai",
+  "stars": 0,
+  "colors": {
+    "R": 11,
+    "Y": 12,
+    "B": 11,
+    "O": 11,
+    "G": 11,
+    "P": 11
+  }
+}

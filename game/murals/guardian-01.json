@@ -1,0 +1,37 @@
+{
+  "v": 1,
+  "id": "guardian-01",
+  "name": "신전의 수호자",
+  "length": 30,
+  "w": 16,
+  "h": 16,
+  "rows": [
+    "................",
+    "........P.......",
+    ".....KGPPGK.....",
+    "...KBBGPPGBB....",
+    "..GGGBYYYKBGGG..",
+    "...KKKYBBYKKK...",
+    "..OKKKKKKKKKKO..",
+    "..OOKYYRRYYKOO..",
+    "..OORKYRRYYROO..",
+    "..BORYYRRYYROB..",
+    "..OOKKKRRRKKOO..",
+    "..GGKKPPPPBGG...",
+    "...KGKPPPPRGK...",
+    ".....RRRRRR.....",
+    ".......RR.......",
+    "................"
+  ],
+  "source": "ai",
+  "stars": 0,
+  "colors": {
+    "R": 22,
+    "Y": 16,
+    "B": 11,
+    "O": 16,
+    "G": 16,
+    "P": 13,
+    "K": 33
+  }
+}
