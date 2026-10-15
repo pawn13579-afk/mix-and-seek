@@ -7,12 +7,12 @@
   "h": 12,
   "rows": [
     "............",
-    ".P........P.",
+    ".B........B.",
     ".GY...B..YG.",
-    "GOYY.ROG.YOG",
-    "GOOYRRR.YOOG",
-    ".PBBRRRRBBP.",
-    ".OPBBRRBBPO.",
+    "ROYY.ROG.YOR",
+    "ROOYRRR.YOOR",
+    ".YBBRRRRBBY.",
+    ".BPBBRRBBPB.",
     "..GPORYOPG..",
     ".....YY.....",
     "....BGGB....",
@@ -20,13 +20,13 @@
     "............"
   ],
   "source": "ai",
-  "stars": 0,
+  "stars": 1,
   "colors": {
-    "R": 11,
-    "Y": 12,
-    "B": 11,
-    "O": 11,
-    "G": 11,
-    "P": 11
+    "R": 15,
+    "Y": 14,
+    "B": 15,
+    "O": 9,
+    "G": 7,
+    "P": 7
   }
 }

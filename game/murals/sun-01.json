@@ -16,7 +16,7 @@
     ".Y....Y."
   ],
   "source": "pattern",
-  "stars": 0,
+  "stars": 1,
   "colors": {
     "R": 8,
     "Y": 11,
