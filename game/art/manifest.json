@@ -106,7 +106,8 @@
     "guardian-3": "art/guardian-3.webp",
     "guardian-4": "art/guardian-4.webp",
     "guardian-5": "art/guardian-5.webp",
-    "floor-spring": "art/floor-spring.webp"
+    "floor-spring": "art/floor-spring.webp",
+    "floor-door": "art/floor-door.webp"
   },
   "nine": {
     "frame": [
