@@ -100,7 +100,13 @@
     "bg-floor-3": "art/bg-floor-3.webp",
     "frame-floor-3": "art/frame-floor-3.webp",
     "bg-floor-4": "art/bg-floor-4.webp",
-    "frame-floor-4": "art/frame-floor-4.webp"
+    "frame-floor-4": "art/frame-floor-4.webp",
+    "guardian-1": "art/guardian-1.webp",
+    "guardian-2": "art/guardian-2.webp",
+    "guardian-3": "art/guardian-3.webp",
+    "guardian-4": "art/guardian-4.webp",
+    "guardian-5": "art/guardian-5.webp",
+    "floor-spring": "art/floor-spring.webp"
   },
   "nine": {
     "frame": [
