@@ -108,7 +108,8 @@
     "guardian-5": "art/guardian-5.webp",
     "floor-spring": "art/floor-spring.webp",
     "floor-door": "art/floor-door.webp",
-    "floor-door-wide": "art/floor-door-wide.webp"
+    "floor-door-wide": "art/floor-door-wide.webp",
+    "bg-floor-5": "art/bg-floor-5.webp"
   },
   "nine": {
     "frame": [
