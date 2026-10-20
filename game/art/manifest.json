@@ -112,7 +112,10 @@
     "bg-floor-5": "art/bg-floor-5.webp",
     "frame-floor-5": "art/frame-floor-5.webp",
     "bg-hall": "art/bg-hall.webp",
-    "frame-hall": "art/frame-hall.webp"
+    "frame-hall": "art/frame-hall.webp",
+    "bg-deep": "art/bg-deep.webp",
+    "guardian-hall": "art/guardian-hall.webp",
+    "guardian-deep": "art/guardian-deep.webp"
   },
   "nine": {
     "frame": [
@@ -374,6 +377,34 @@
         117,
         19,
         21
+      ]
+    ],
+    "guardian-hall": [
+      [
+        184,
+        109,
+        21,
+        20
+      ],
+      [
+        225,
+        110,
+        19,
+        20
+      ]
+    ],
+    "guardian-deep": [
+      [
+        168,
+        114,
+        37,
+        34
+      ],
+      [
+        215,
+        119,
+        27,
+        26
       ]
     ]
   }
