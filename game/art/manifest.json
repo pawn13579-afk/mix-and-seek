@@ -205,7 +205,8 @@
     "emblem-crystal": "art/emblem-crystal.webp",
     "emblem-hall": "art/emblem-hall.webp",
     "emblem-heart": "art/emblem-heart.webp",
-    "emblem-deep": "art/emblem-deep.webp"
+    "emblem-deep": "art/emblem-deep.webp",
+    "fx-hammer": "art/fx-hammer.webp"
   },
   "nine": {
     "frame": [
