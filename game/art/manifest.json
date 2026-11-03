@@ -204,7 +204,24 @@
     "emblem-hall": "art/emblem-hall.webp",
     "emblem-heart": "art/emblem-heart.webp",
     "emblem-deep": "art/emblem-deep.webp",
-    "fx-hammer": "art/fx-hammer.webp"
+    "fx-hammer": "art/fx-hammer.webp",
+    "shadow-gem-1": "art/shadow-gem-1.webp",
+    "shadow-gem-2": "art/shadow-gem-2.webp",
+    "shadow-gem-4": "art/shadow-gem-4.webp",
+    "shadow-gem-3": "art/shadow-gem-3.webp",
+    "shadow-gem-6": "art/shadow-gem-6.webp",
+    "shadow-gem-5": "art/shadow-gem-5.webp",
+    "item-whistle": "art/item-whistle.png",
+    "fx-shadow-smoke": "art/fx-shadow-smoke.webp",
+    "fx-shadow-ring": "art/fx-shadow-ring.webp",
+    "fx-shadow-cord": "art/fx-shadow-cord.webp",
+    "fx-black-knot": "art/fx-black-knot.webp"
+  },
+  "sheets": {
+    "fx-shadow-smoke": [128, 128],
+    "fx-shadow-ring": [96, 96],
+    "fx-shadow-cord": [128, 128],
+    "fx-black-knot": [128, 128]
   },
   "nine": {
     "frame": [
