@@ -215,13 +215,16 @@
     "fx-shadow-smoke": "art/fx-shadow-smoke.webp",
     "fx-shadow-ring": "art/fx-shadow-ring.webp",
     "fx-shadow-cord": "art/fx-shadow-cord.webp",
-    "fx-black-knot": "art/fx-black-knot.webp"
+    "fx-black-knot": "art/fx-black-knot.webp",
+    "item-bridge": "art/item-bridge.webp",
+    "fx-bridge": "art/fx-bridge.webp"
   },
   "sheets": {
     "fx-shadow-smoke": [128, 128],
     "fx-shadow-ring": [96, 96],
     "fx-shadow-cord": [128, 128],
-    "fx-black-knot": [128, 128]
+    "fx-black-knot": [128, 128],
+    "fx-bridge": [128, 64]
   },
   "nine": {
     "frame": [
