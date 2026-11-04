@@ -219,7 +219,8 @@
     "item-bridge": "art/item-bridge.webp",
     "fx-bridge": "art/fx-bridge.webp",
     "fx-barrier-frame": "art/fx-barrier-frame.webp",
-    "fx-barrier-shards": "art/fx-barrier-shards.webp"
+    "fx-barrier-shards": "art/fx-barrier-shards.webp",
+    "chest-set": "art/chest-set.webp"
   },
   "sheets": {
     "fx-shadow-smoke": [128, 128],
@@ -227,7 +228,8 @@
     "fx-shadow-cord": [128, 128],
     "fx-black-knot": [128, 128],
     "fx-bridge": [128, 64],
-    "fx-barrier-shards": [128, 128]
+    "fx-barrier-shards": [128, 128],
+    "chest-set": [128, 128]
   },
   "nine": {
     "frame": [
