@@ -72,6 +72,8 @@
     "when-span": "art/when-span.webp",
     "when-perm": "art/when-perm.webp",
     "ui-lock": "art/ui-lock.webp",
+    "ui-lock-iron": "art/ui-lock-iron.webp",
+    "ui-lock-broken": "art/ui-lock-broken.webp",
     "box-info": "art/box-info.webp",
     "tray": "art/tray.webp",
     "btn-blue": "art/btn-blue.webp",
