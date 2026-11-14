@@ -233,7 +233,8 @@
     "fx-bridge": "art/fx-bridge.webp",
     "fx-barrier-frame": "art/fx-barrier-frame.webp",
     "fx-barrier-shards": "art/fx-barrier-shards.webp",
-    "chest-set": "art/chest-set.webp"
+    "chest-set": "art/chest-set.webp",
+    "when-limit": "art/when-limit.webp"
   },
   "sheets": {
     "fx-shadow-smoke": [128, 128],
