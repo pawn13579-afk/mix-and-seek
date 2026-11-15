@@ -235,7 +235,8 @@
     "fx-barrier-shards": "art/fx-barrier-shards.webp",
     "chest-set": "art/chest-set.webp",
     "when-limit": "art/when-limit.webp",
-    "ui-shop": "art/ui-shop.webp"
+    "ui-shop": "art/ui-shop.webp",
+    "floor-map": "art/floor-map.webp"
   },
   "sheets": {
     "fx-shadow-smoke": [
