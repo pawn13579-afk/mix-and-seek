@@ -19,6 +19,8 @@
     "cell-1": "art/cell-1.webp",
     "cell-2": "art/cell-2.webp",
     "cell-3": "art/cell-3.webp",
+    "cell-hole": "art/cell-hole.webp",
+    "cell-rock": "art/cell-rock.webp",
     "frame": "art/frame.webp",
     "bg-game": "art/bg-game.webp",
     "title-sky": "art/title-sky.webp",
@@ -236,7 +238,15 @@
     "chest-set": "art/chest-set.webp",
     "when-limit": "art/when-limit.webp",
     "ui-shop": "art/ui-shop.webp",
-    "floor-map": "art/floor-map.webp"
+    "floor-map": "art/floor-map.webp",
+    "trap-torch": "art/trap-torch.webp",
+    "trap-dark": "art/trap-dark.webp",
+    "trap-flood": "art/trap-flood.webp",
+    "trap-twin": "art/trap-twin.webp",
+    "trap-crumble-fallen": "art/trap-crumble-fallen.webp",
+    "trap-midas": "art/trap-midas.webp",
+    "trap-flood-mark": "art/trap-flood-mark.webp",
+    "trap-crumble": "art/trap-crumble.webp"
   },
   "sheets": {
     "fx-shadow-smoke": [
